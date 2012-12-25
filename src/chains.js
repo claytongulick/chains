@@ -12,6 +12,7 @@ o_o =  function()
   /**
    * Utility to call the fn with the given name.
    * This just spins through the functions[] until it finds a function with the given name and executes it
+   * If name is a function, it will be execited directly
    */
   function call_fn(name,last)
   {
@@ -101,6 +102,7 @@ o_o =  function()
         self.functions.push(fn);
         break;
       case 'object':
+        self.execution_map = args[0];
         break;
       case 'string':
         fn = args[1];

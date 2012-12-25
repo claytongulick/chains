@@ -53,7 +53,7 @@ test("aliased functions, synchronous, no execution map",
       "function1",
       function()
       {
-        ok(true,"anonymous function 1 execute");
+        ok(true,"aliased function 1 execute");
         this.result = 1;
         this.data_object = { test: "value 1" };
         this.next();
@@ -62,7 +62,7 @@ test("aliased functions, synchronous, no execution map",
       "function2",
       function()
       {
-        ok(true,"anonymous function 2 execute");
+        ok(true,"aliased function 2 execute");
         this.result = 2;
         this.data_object = { test: "value 2" };
         ok(this.last.result==1,"previous link result");
@@ -73,7 +73,7 @@ test("aliased functions, synchronous, no execution map",
       "function3",
       function()
       {
-        ok(true,"anonymous function 3 execute");
+        ok(true,"aliased function 3 execute");
         ok(this.last.result==2,"previous link result");
         ok(this.last.data_object.test=="value 2","previous link data object result");
         ok(this.last.last.result==1,"previous previous link result");
@@ -91,6 +91,44 @@ test("aliased functions, synchronous, no execution map",
 test("named functions, synchronous, no execution map",
   function()
   {
+    function function1()
+    {
+      ok(true,"named function 1 execute");
+      this.result = 1;
+      this.data_object = { test: "value 1" };
+      this.next();
+    }
+
+    function function2()
+    {
+      ok(true,"named function 2 execute");
+      this.result = 2;
+      this.data_object = { test: "value 2" };
+      ok(this.last.result==1,"previous link result");
+      ok(this.last.data_object.test=="value 1","previous link data object result");
+      this.next();
+    }
+
+    function function3()
+    {
+      ok(true,"named function 3 execute");
+      ok(this.last.result==2,"previous link result");
+      ok(this.last.data_object.test=="value 2","previous link data object result");
+      ok(this.last.last.result==1,"previous previous link result");
+      ok(this.last.last.data_object.test=="value 1","previous previous link data object result");
+      this.next();
+    }
+
+    expect(9);
+    o_o
+    (
+      function1
+    )(
+      function2
+    )(
+      function3
+    )
+    ();
   }
 );
 
@@ -100,6 +138,44 @@ test("named functions, synchronous, no execution map",
 asyncTest("anonymous functions, asynchronous, no execution map",
   function()
   {
+    expect(9);
+    o_o
+    (
+      function()
+      {
+        ok(true,"anonymous function 1 execute");
+        this.result = 1;
+        this.data_object = { test: "value 1" };
+        setTimeout(this.next, 1);
+      }
+    )(
+      function()
+      {
+        ok(true,"anonymous function 2 execute");
+        this.result = 2;
+        this.data_object = { test: "value 2" };
+        ok(this.last.result==1,"previous link result");
+        ok(this.last.data_object.test=="value 1","previous link data object result");
+        var next = this.next;
+        setTimeout(
+          function()
+          {
+            next();
+          }, 1);
+      }
+    )(
+      function()
+      {
+        ok(true,"anonymous function 3 execute");
+        ok(this.last.result==2,"previous link result");
+        ok(this.last.data_object.test=="value 2","previous link data object result");
+        ok(this.last.last.result==1,"previous previous link result");
+        ok(this.last.last.data_object.test=="value 1","previous previous link data object result");
+        setTimeout(this.next, 1);
+        start();
+      }
+    )
+    ();
   }
 );
 
@@ -109,6 +185,47 @@ asyncTest("anonymous functions, asynchronous, no execution map",
 asyncTest("aliased functions, asynchronous, no execution map",
   function()
   {
+    expect(9);
+    o_o
+    (
+      "function1",
+      function()
+      {
+        ok(true,"anonymous function 1 execute");
+        this.result = 1;
+        this.data_object = { test: "value 1" };
+        setTimeout(this.next, 1);
+      }
+    )(
+      "function2",
+      function()
+      {
+        ok(true,"anonymous function 2 execute");
+        this.result = 2;
+        this.data_object = { test: "value 2" };
+        ok(this.last.result==1,"previous link result");
+        ok(this.last.data_object.test=="value 1","previous link data object result");
+        var next = this.next;
+        setTimeout(
+          function()
+          {
+            next();
+          }, 1);
+      }
+    )(
+      "function3",
+      function()
+      {
+        ok(true,"anonymous function 3 execute");
+        ok(this.last.result==2,"previous link result");
+        ok(this.last.data_object.test=="value 2","previous link data object result");
+        ok(this.last.last.result==1,"previous previous link result");
+        ok(this.last.last.data_object.test=="value 1","previous previous link data object result");
+        setTimeout(this.next, 1);
+        start();
+      }
+    )
+    ();
   }
 );
 
@@ -118,6 +235,45 @@ asyncTest("aliased functions, asynchronous, no execution map",
 asyncTest("named functions, asynchronous, no execution map",
   function()
   {
+    function function1()
+    {
+      ok(true,"named function 1 execute");
+      this.result = 1;
+      this.data_object = { test: "value 1" };
+      setTimeout(this.next, 1);
+    }
+
+    function function2()
+    {
+      ok(true,"named function 2 execute");
+      this.result = 2;
+      this.data_object = { test: "value 2" };
+      ok(this.last.result==1,"previous link result");
+      ok(this.last.data_object.test=="value 1","previous link data object result");
+      setTimeout(this.next, 1);
+    }
+
+    function function3()
+    {
+      ok(true,"named function 3 execute");
+      ok(this.last.result==2,"previous link result");
+      ok(this.last.data_object.test=="value 2","previous link data object result");
+      ok(this.last.last.result==1,"previous previous link result");
+      ok(this.last.last.data_object.test=="value 1","previous previous link data object result");
+      setTimeout(this.next, 1);
+      start();
+    }
+
+    expect(9);
+    o_o
+    (
+      function1
+    )(
+      function2
+    )(
+      function3
+    )
+    ();
   }
 );
 
@@ -131,6 +287,46 @@ module("execution map");
 test("aliased functions, synchronous, execution map",
   function()
   {
+    o_o
+    (
+      "function1",
+      function()
+      {
+        ok(true,"aliased function 1 execute");
+        this.result = 1;
+        this.data_object = { test: "value 1" };
+        this.next();
+      }
+    )(
+      "function2",
+      function()
+      {
+        ok(true,"aliased function 2 execute");
+        this.result = 2;
+        this.data_object = { test: "value 2" };
+        ok(this.last.result==1,"previous link result");
+        ok(this.last.data_object.test=="value 1","previous link data object result");
+        this.next();
+      }
+    )(
+      "function3",
+      function()
+      {
+        ok(true,"aliased function 3 execute");
+        ok(this.last.result==2,"previous link result");
+        ok(this.last.data_object.test=="value 2","previous link data object result");
+        ok(this.last.last.result==1,"previous previous link result");
+        ok(this.last.last.data_object.test=="value 1","previous previous link data object result");
+        this.next();
+      }
+    )
+    (
+      {
+        "function3": "function2",
+        "function2": "function1"
+      }
+    )
+    ();
   }
 );
 
