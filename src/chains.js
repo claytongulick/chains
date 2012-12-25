@@ -106,6 +106,7 @@ o_o =  function()
         fn = args[1];
         fn.alias=args[0];
         self.functions.push(fn);
+
         break;
       default:
         break;
