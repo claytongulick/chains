@@ -20,11 +20,19 @@ o_o =  function()
       fn=name;
       
     for(var i=0;i<self.functions.length;i++)
-      if(self.functions[i].name==name)
+    {
+      if(self.functions[i].alias && self.functions[i].alias==name)
       {
         fn = self.functions[i]; 
         break;
       }
+
+      if(self.functions[i].name && self.functions[i].name==name)
+      {
+        fn = self.functions[i]; 
+        break;
+      }
+    }
     
     fn.start_execute = new Date().getTime();
     var thys = {
@@ -95,6 +103,9 @@ o_o =  function()
       case 'object':
         break;
       case 'string':
+        fn = args[1];
+        fn.alias=args[0];
+        self.functions.push(fn);
         break;
       default:
         break;

@@ -1,3 +1,4 @@
+
 module("no execution map")
 /**
  * This tests execution of synchronous anonymous functions
@@ -46,6 +47,41 @@ test("anonymous functions, synchronous, no execution map",
 test("aliased functions, synchronous, no execution map",
   function()
   {
+    expect(9);
+    o_o
+    (
+      "function1",
+      function()
+      {
+        ok(true,"anonymous function 1 execute");
+        this.result = 1;
+        this.data_object = { test: "value 1" };
+        this.next();
+      }
+    )(
+      "function2",
+      function()
+      {
+        ok(true,"anonymous function 2 execute");
+        this.result = 2;
+        this.data_object = { test: "value 2" };
+        ok(this.last.result==1,"previous link result");
+        ok(this.last.data_object.test=="value 1","previous link data object result");
+        this.next();
+      }
+    )(
+      "function3",
+      function()
+      {
+        ok(true,"anonymous function 3 execute");
+        ok(this.last.result==2,"previous link result");
+        ok(this.last.data_object.test=="value 2","previous link data object result");
+        ok(this.last.last.result==1,"previous previous link result");
+        ok(this.last.last.data_object.test=="value 1","previous previous link data object result");
+        this.next();
+      }
+    )
+    ();
   }
 );
 
