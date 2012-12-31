@@ -70,13 +70,16 @@ o_o =  function()
     var i=0;
     if(self.execution_map)
     {
-      for(var key in execution_map)
-        if(key==last)
+      for(var key in self.execution_map)
+        if(key==last.alias || key==last.name)
         {
-          next_fn = execution_map[key];
-          if(typeof next_fn == 'array')
-            for(i=0; i < next_fn.length; i++)
-              call_fn(next_fn[i].name,last);
+          next_fn = self.execution_map[key];
+          if(typeof next_fn == 'object')
+          {
+            if (Object.prototype.toString.call(next_fn) == '[object Array]')
+              for(i=0; i < next_fn.length; i++)
+                call_fn(next_fn[i],last);
+          }
           else
             if(typeof next_fn == 'string')
               call_fn(next_fn,last);
