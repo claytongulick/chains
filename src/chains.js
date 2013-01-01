@@ -18,23 +18,28 @@ o_o =  function()
   {
     var fn;
     if(typeof name=='function')
-      fn=name;
-      
-    for(var i=0;i<self.functions.length;i++)
     {
-      if(self.functions[i].alias && self.functions[i].alias==name)
+      fn=name;
+    }
+    else
+    {
+      //find the function with the correct name
+      for(var i=0;i<self.functions.length;i++)
       {
-        fn = self.functions[i]; 
-        break;
-      }
+        if(self.functions[i].alias && self.functions[i].alias==name)
+        {
+          fn = self.functions[i]; 
+          break;
+        }
 
-      if(self.functions[i].name && self.functions[i].name==name)
-      {
-        fn = self.functions[i]; 
-        break;
+        if(self.functions[i].name && self.functions[i].name==name)
+        {
+          fn = self.functions[i]; 
+          break;
+        }
       }
     }
-    
+      
     fn.start_execute = new Date().getTime();
     var thys = {
         last: last,
@@ -66,7 +71,7 @@ o_o =  function()
    */
   function next(last)
   {
-    var next_fn;
+    var next_fn=null;
     var i=0;
     if(self.execution_map)
     {
@@ -84,11 +89,23 @@ o_o =  function()
             if(typeof next_fn == 'string')
               call_fn(next_fn,last);
         }
+      if(!next_fn)
+      {
+        if(self.next)
+          self.next();
+      }
     }
     else
     {
       self.current_index++;
-      if(self.current_index >= self.functions.length) return;
+      if(self.current_index >= self.functions.length)
+      {
+        if(self.next)
+        {
+          self.next(); //if we're a nested chain call next()
+        }
+        return;
+      }
       call_fn(self.functions[self.current_index],last);
     }
   } //end next()
@@ -133,6 +150,8 @@ o_o =  function()
 
   return function() 
           { 
+            if(this.next)
+              self.next=this.next;
             return o_o.apply(self,arguments); 
           };
 }

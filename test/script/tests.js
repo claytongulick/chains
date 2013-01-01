@@ -631,7 +631,7 @@ asyncTest("mixed synchronous, asyncronous, named, aliased, anonymous no executio
 asyncTest("mixed synchronous, asyncronous, named, aliased, arrays execution_map",
   function()
   {
-    expect(14);
+    expect(25);
     function function1()
     {
       ok(true,"named function 1 execute");
@@ -663,22 +663,23 @@ asyncTest("mixed synchronous, asyncronous, named, aliased, arrays execution_map"
         ok(true,"aliased function 3 execute");
         this.result=3;
         this.data_object = { test: "value 3" };
-        ok(this.last.result==2,"previous link result");
-        ok(this.last.data_object.test=="value 2","previous link data object result");
-        ok(this.last.last.result==1,"previous previous link result");
-        ok(this.last.last.data_object.test=="value 1","previous previous link data object result");
+        ok(this.last.result==5,"previous link result");
+        ok(this.last.data_object.test=="value 5","previous link data object result");
+        ok(this.last.last.result==2,"previous previous link result");
+        ok(this.last.last.data_object.test=="value 2","previous previous link data object result");
         setTimeout(this.next,1);
       }
     )(
       "function4",
       function()
       {
-        ok(true,"anonymous function 4 execute");
-        ok(this.last.result==3,"previous link result");
-        ok(this.last.data_object.test=="value 3","previous link data object result");
+        ok(true,"aliased function 4 execute");
+        ok(this.last.result==6,"previous link result");
+        ok(this.last.data_object.test=="value 6","previous link data object result");
         ok(this.last.last.result==2,"previous previous link result");
         ok(this.last.last.data_object.test=="value 2","previous previous link data object result");
-        start();
+        ok(this.last.last.last.result==1,"previous previous previous link result");
+        ok(this.last.last.last.data_object.test=="value 1","previous previous previous link data object result");
         this.next();
       }
     )(
@@ -688,8 +689,8 @@ asyncTest("mixed synchronous, asyncronous, named, aliased, arrays execution_map"
         ok(true,"aliased array function 1 execute");
         this.result = 4;
         this.data_object = { test: "value 4" };
-        ok(this.last.result==1,"previous link result");
-        ok(this.last.data_object.test=="value 1","previous link data object result");
+        ok(this.last.result==2,"previous link result");
+        ok(this.last.data_object.test=="value 2","previous link data object result");
         this.next();
       }
     )(
@@ -699,9 +700,9 @@ asyncTest("mixed synchronous, asyncronous, named, aliased, arrays execution_map"
         ok(true,"aliased array function 2 execute");
         this.result = 5;
         this.data_object = { test: "value 5" };
-        ok(this.last.result==1,"previous link result");
-        ok(this.last.data_object.test=="value 1","previous link data object result");
-        this.next();
+        ok(this.last.result==2,"previous link result");
+        ok(this.last.data_object.test=="value 2","previous link data object result");
+        setTimeout(this.next,1);
       }
     )(
       "function_ar3",
@@ -710,10 +711,13 @@ asyncTest("mixed synchronous, asyncronous, named, aliased, arrays execution_map"
         ok(true,"aliased array function 3 execute");
         this.result = 6;
         this.data_object = { test: "value 6" };
-        ok(this.last.result==1,"previous link result");
-        ok(this.last.data_object.test=="value 1","previous link data object result");
+        ok(this.last.result==2,"previous link result");
+        ok(this.last.data_object.test=="value 2","previous link data object result");
         this.next();
       }
+    )(
+      "finish",
+      start
     )(
       {
         "function1": "function2",
@@ -723,31 +727,125 @@ asyncTest("mixed synchronous, asyncronous, named, aliased, arrays execution_map"
                         "function_ar3"
                      ],
         "function_ar2": "function3",
-        "function_ar3": "function4"
-        
+        "function_ar3": "function4",
+        "function4": "finish"
       }
     )();
   }
 );
 
-/**
- * Test the use of arrays in execution map, for asynchronous functions
- */
-asyncTest("asynchronous, execution_map, array",
+module("nested chains");
+
+test("basic nested chains",
   function()
   {
-  }
-);
-
-module("nested chains");
+    expect(4);
+    o_o
+    (
+      o_o
+      (
+        function()
+        {
+          this.chain="inner chain";
+          ok(true,"inner chain 1, function 1");
+          this.next();
+        }
+      )(
+        function()
+        {
+          ok(true,"inner chain 1, function 2");
+          this.next();
+        }
+      )
+    )(
+      o_o
+      (
+        function()
+        {
+          ok(true,"inner chain 2, function 1");
+          this.next();
+        }
+      )(
+        function()
+        {
+          ok(true,"inner chain 2, function 2");
+          this.next();
+        }
+      )
+    )();
+  });
 
 /**
  * Test using chains of chains anonymously
  * This uses both synchronous and async functions
  */
-test("nested anonymous chains",
+asyncTest("nested anonymous chains",
   function()
   {
+    expect(8);
+    var sync_result;
+    var async_result;
+
+    o_o
+    (
+      //execute a chain of synchronous anonymous functions, store the result in sync_result
+      o_o
+      (
+        function()
+        {
+          ok(true,"nested chain synch func 1");
+          this.result=1;
+          this.next();
+        }
+      )(
+        function()
+        {
+          ok(true,"nested chain synch func 2");
+          this.result = 1 + this.last.result;
+          this.next();
+        }
+      )(
+        function()
+        {
+          ok(true,"nested chain synch func 3");
+          sync_result = 1 + this.last.result;
+          this.next(); 
+        }
+      )
+    )(
+      //execute a chain of async functions, store the result in async_result
+      o_o
+      (
+        function()
+        {
+          ok(true,"nested chain asynch func 1");
+          this.result=1;
+          setTimeout(this.next,1);
+        }
+      )(
+        function()
+        {
+          ok(true,"nested chain asynch func 2");
+          this.result = 2 + this.last.result;
+          setTimeout(this.next,1);
+        }
+      )(
+        function()
+        {
+          ok(true,"nested chain asynch func 3");
+          async_result = 3 + this.last.result;
+          this.next();
+        }
+      )
+    )(
+      function()
+      {
+        ok(sync_result==3,"Synchronous result ok");
+        ok(async_result==6, "Asynchronous result ok");
+        this.next();
+        start();
+      }
+    )();
   }
 );
 
