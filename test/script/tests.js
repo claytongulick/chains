@@ -739,7 +739,7 @@ module("nested chains");
 test("basic nested chains",
   function()
   {
-    expect(4);
+    expect(6);
     o_o
     (
       o_o
@@ -748,12 +748,14 @@ test("basic nested chains",
         {
           this.chain="inner chain";
           ok(true,"inner chain 1, function 1");
+          this.result=1;
           this.next();
         }
       )(
         function()
         {
           ok(true,"inner chain 1, function 2");
+          this.result=2;
           this.next();
         }
       )
@@ -763,6 +765,8 @@ test("basic nested chains",
         function()
         {
           ok(true,"inner chain 2, function 1");
+          ok(this.last.result==2,"previous chain result");
+          ok(this.last.last.result==1,"previous previous chain result");
           this.next();
         }
       )(
@@ -857,6 +861,37 @@ asyncTest("nested anonymous chains",
 test("nested named chains",
   function()
   {
+    chain2 = o_o
+    (
+      function()
+      {
+        ok(true,"chain2 function 1 execute");
+        setTimeout(this.next,1);
+      }
+    )(
+      function()
+      {
+        ok(true,"chain2 function 2 execute");
+        this.next();
+      }
+    );
+    o_o
+    (
+      "chain1",
+      o_o
+      (
+        function()
+        {
+        }
+      )(
+        function()
+        {
+        }
+      )
+    )(
+      chain2
+    )();
+
   }
 );
 

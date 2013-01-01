@@ -6,7 +6,7 @@ o_o =  function()
   {
     functions: [],
     current_index: 0,
-    execution_map: null
+    execution_map: null,
   });
 
   /**
@@ -45,12 +45,19 @@ o_o =  function()
         last: last,
         next: function()
         {
-          fn.end_execute = new Date().getTime();
-          //copy the 'this' context and preserve it once execution context has faded
-          for(key in thys)
-            fn[key] = thys[key];
-
-          next(fn);
+          if(this.__last) //check to see if 'last' is being passed up from a nested chain
+          {
+            this.__last.end_execute = new Date().getTime();
+            next(this.__last)
+          }
+          else
+          {
+            fn.end_execute = new Date().getTime();
+            //copy the 'this' context and preserve it once execution context has faded
+            for(key in thys)
+              fn[key] = thys[key];
+            next(fn);
+          }
         }
     };
     fn.apply(thys,[]);
@@ -92,7 +99,7 @@ o_o =  function()
       if(!next_fn)
       {
         if(self.next)
-          self.next();
+          self.next.apply({__last:last},[]);
       }
     }
     else
@@ -102,7 +109,7 @@ o_o =  function()
       {
         if(self.next)
         {
-          self.next(); //if we're a nested chain call next()
+          self.next.apply({__last:last},[]); //if we're a nested chain call next()
         }
         return;
       }
@@ -141,17 +148,22 @@ o_o =  function()
       for(key in self.execution_map)
       {
         //get the first key, then break
-        call_fn(key,self);
+        call_fn(key,self.last||self);
         break;
       }
     else
-      call_fn(self.functions[0],self);
+      call_fn(self.functions[0],self.last||self);
   }
 
   return function() 
           { 
+            //handle nested chains, carry assignment of next() and 'last' through to 'this' context of tail and head functions
             if(this.next)
               self.next=this.next;
+            if(this.last)
+              self.last=this.last;
+
+            //closure around self
             return o_o.apply(self,arguments); 
           };
 }
