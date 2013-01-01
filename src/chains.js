@@ -1,7 +1,31 @@
+/*
+
+   Chains.js
+
+   Javascript execution and management utility
+
+   Copyright 2012 Clayton C. Gulick
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 o_o =  function()
 {
   var args = arguments;
   var fn;
+
+  //if this==window this is an initial invocation, create the self context that will be passed to chained calls
+  //if this!=window, this is a chained call, and 'self' has been applied as 'this', so get a reference to it
   var self = (this != window ? this :
   {
     functions: [],
@@ -122,24 +146,32 @@ o_o =  function()
    */
   if(arguments.length > 0)
   {
-    switch(typeof args[0])
+    var handled;
+    //check to see if we have any plugins that will handle this call
+    if(o_o.plugins.length)
     {
-      case 'function':
-        fn = args[0];
-        self.functions.push(fn);
-        break;
-      case 'object':
-        self.execution_map = args[0];
-        break;
-      case 'string':
-        fn = args[1];
-        fn.alias=args[0];
-        self.functions.push(fn);
-
-        break;
-      default:
-        break;
+      for(var i=0; i < o_o.plugins.length; i++)
+        if(o_o.plugins[i](self)) {handled = true; break;}
     }
+
+    if(!handled) //if a plugin didn't handle the call, take default actions
+      switch(typeof args[0])
+      {
+        case 'function': //functions get queued
+          fn = args[0];
+          self.functions.push(fn);
+          break;
+        case 'object': //objects are interpreted as an execution map
+          self.execution_map = args[0];
+          break;
+        case 'string': //strings are assumed to be aliases
+          fn = args[1];
+          fn.alias=args[0];
+          self.functions.push(fn);
+          break;
+        default:
+          break;
+      }
   }
   else
   {
@@ -155,6 +187,8 @@ o_o =  function()
       call_fn(self.functions[0],self.last||self);
   }
 
+  //return a closure that will hold the self object
+  //this allows chaining of calls, while preserving context in the 'self' variable
   return function() 
           { 
             //handle nested chains, carry assignment of next() and 'last' through to 'this' context of tail and head functions
@@ -167,3 +201,5 @@ o_o =  function()
             return o_o.apply(self,arguments); 
           };
 }
+
+o_o.plugins=[]; //init plugins array
