@@ -64,11 +64,15 @@ o_o =  function()
       }
     }
       
-    fn.start_execute = new Date().getTime();
+    fn.start_execute = new Date().getTime(); //tag the start time for runtime performance evaluation
+    //create a 'this' context for the invoked function
+    //this context contains the next and last members, which allow chaining.
+    //the next member is a closure around o_o.next
     var thys = {
         last: last,
         next: function()
         {
+          //check to see if we've been invoked from a different chain, this supports nesting chains
           if(this.__last) //check to see if 'last' is being passed up from a nested chain
           {
             this.__last.end_execute = new Date().getTime();
