@@ -858,20 +858,25 @@ asyncTest("nested anonymous chains",
  * This uses both synchronous and async functions
  * This uses both aliased sub chains, and named functions
  */
-test("nested named chains",
+asyncTest("nested named chains",
   function()
   {
+    expect(8);
     chain2 = o_o
     (
       function()
       {
         ok(true,"chain2 function 1 execute");
+        this.result=3;
+        ok(this.last.result==2,"previous chain result");
+        ok(this.last.last.result==1,"previous chain result");
         setTimeout(this.next,1);
       }
     )(
       function()
       {
         ok(true,"chain2 function 2 execute");
+        ok(this.last.result==3,"previous chain result");
         this.next();
       }
     );
@@ -882,14 +887,23 @@ test("nested named chains",
       (
         function()
         {
+          ok(true,"chain1 execute, first function");
+          this.result=1;
+          this.next();
         }
       )(
         function()
         {
+          ok(true,"chain1 execute, second function, async next");
+          ok(this.last.result==1,"previous result");
+          this.result=2;
+          setTimeout(this.next,2000); //long delay
         }
       )
     )(
       chain2
+    )(
+      start
     )();
 
   }
