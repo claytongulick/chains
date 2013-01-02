@@ -909,7 +909,32 @@ asyncTest("nested named chains",
   }
 );
 
-module("module loader");
+module("plugins");
+
+asyncTest("basic anonymous plugin test",
+  function()
+  {
+    expect(3);
+    o_o
+    (
+      {
+        test: true,
+        value: "this is a test value passed to the plugin"
+      }
+    )(
+      function()
+      {
+        ok(true,"function execution after plugin");
+        ok(this.last.result=="test plugin","plugin result");
+        ok(this.last.value=="this is a test value passed to the plugin","plugin passed value");
+        this.next();
+      }
+    )(
+      start
+    )();
+  });
+
+module("plugins - module loader");
 
 test("basic module loading",
   function()
@@ -941,7 +966,7 @@ test("module load of chains modules",
   }
 );
 
-module("threading");
+module("plugins - threading");
 test("web workers",
   function()
   {
@@ -953,3 +978,5 @@ test("web workers unsupported",
   {
   }
 );
+
+module("plugins - glsl");

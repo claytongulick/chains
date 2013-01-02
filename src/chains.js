@@ -1,6 +1,6 @@
 /*
 
-   Chains.js
+   chains.js
 
    Javascript execution and management utility
 
@@ -150,13 +150,7 @@ o_o =  function()
    */
   if(arguments.length > 0)
   {
-    var handled;
-    //check to see if we have any plugins that will handle this call
-    if(o_o.plugins.length)
-    {
-      for(var i=0; i < o_o.plugins.length; i++)
-        if(o_o.plugins[i](self)) {handled = true; break;}
-    }
+    var handled=false;
 
     if(!handled) //if a plugin didn't handle the call, take default actions
       switch(typeof args[0])
@@ -166,12 +160,34 @@ o_o =  function()
           self.functions.push(fn);
           break;
         case 'object': //objects are interpreted as an execution map
+          //check to see if we have any plugins that will handle this call
+          if(o_o.plugins.length)
+          {
+            for(var i=0; i < o_o.plugins.length; i++)
+              if(o_o.plugins[i](self,args[0])) {handled = true; break;}
+          }
+
+          if(handled) break; //the plugin handled this, move on
           self.execution_map = args[0];
           break;
         case 'string': //strings are assumed to be aliases
+          if(args.length==1) break; //a string alone is meaningless
+
+          //check to see if we have any plugins that will handle this call
+          if(o_o.plugins.length && (typeof args[1] == 'object'))
+          {
+            for(var i=0; i < o_o.plugins.length; i++)
+              if(o_o.plugins[i](self,args[1])) {handled = true; break;}
+          }
+
+          if(handled) break; //the plugin handled this, move on
+
           fn = args[1];
-          fn.alias=args[0];
-          self.functions.push(fn);
+          if(typeof fn == 'function') //if a function was passed in, queue it. ignore anything else
+          {
+            fn.alias=args[0];
+            self.functions.push(fn);
+          }
           break;
         default:
           break;
