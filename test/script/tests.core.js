@@ -1014,6 +1014,107 @@ test("synchronous, execution_map, array, error",
     ();
   }
 );
+/**
+ * Test the use of arrays in execution map, for asynchronous accumulator functions
+ */
+asyncTest("asynchronous, execution_map, array, accumulator function",
+  function()
+  {
+    expect(17);
+    o_o
+    (
+      "function1",
+      function()
+      {
+        ok(true,"aliased function 1 execute");
+        this.result = 1;
+        this.data_object = { test: "value 1" };
+        setTimeout(this.next,1);
+      }
+    )(
+      "function_ar1",
+      function()
+      {
+        ok(true,"aliased array function 1 execute");
+        this.result1 = 4;
+        this.data_object = { test: "value 4" };
+        ok(this.last.result==1,"previous link result");
+        ok(this.last.data_object.test=="value 1","previous link data object result");
+        setTimeout(this.next,1);
+      }
+    )(
+      "function_ar2",
+      function()
+      {
+        ok(true,"aliased array function 2 execute");
+        this.result2 = 5;
+        this.data_object = { test: "value 5" };
+        ok(this.last.result==1,"previous link result");
+        ok(this.last.data_object.test=="value 1","previous link data object result");
+        setTimeout(this.next,1);
+      }
+    )(
+      "function_ar3",
+      function()
+      {
+        ok(true,"aliased array function 3 execute");
+        this.result3 = 6;
+        this.data_object = { test: "value 6" };
+        ok(this.last.result==1,"previous link result");
+        ok(this.last.data_object.test=="value 1","previous link data object result");
+        setTimeout(this.next,1);
+      }
+    )(
+      "accumulator",
+      function()
+      {
+        if(this.last.result1)
+        {
+          ok(true,"first result");
+          this.result1 = this.last.result1;
+        }
+        if(this.last.result2)
+        {
+          ok(true,"second result");
+          this.result2 = this.last.result2;
+        }
+        if(this.last.result3)
+        {
+          ok(true,"third result");
+          this.result3 = this.last.result3;
+        }
+
+        if(this.result1 && this.result2 && this.result3)
+        {
+          ok(true,"accumulator complete");
+          setTimeout(this.next,1);
+        }
+      }
+    )(
+      "finish",
+      function()
+      {
+        ok(this.last.result1==4,"correct result 1");
+        ok(this.last.result2==5,"correct result 2");
+        ok(this.last.result3==6,"correct result 3");
+        start();
+      }
+    )(
+      {
+        "function1": [
+                        "function_ar1",
+                        "function_ar2",
+                        "function_ar3"
+                      ],
+        "function_ar1": "accumulator",
+        "function_ar2": "accumulator",
+        "function_ar3": "accumulator",
+        "accumulator": "finish"
+      }
+    )
+    ();
+  }
+);
 asyncTest("mixed synchronous, asyncronous, named, aliased, anonymous no execution_map",
   function()
   {
@@ -1352,197 +1453,5 @@ asyncTest("nested named chains",
   }
 );
 
-module("plugins");
 
-asyncTest("basic anonymous plugin test",
-  function()
-  {
-    expect(3);
-    o_o
-    (
-      {
-        test: true,
-        value: "this is a test value passed to the plugin"
-      }
-    )(
-      function()
-      {
-        ok(true,"function execution after plugin");
-        ok(this.last.result=="test plugin","plugin result");
-        ok(this.last.value=="this is a test value passed to the plugin","plugin passed value");
-        this.next();
-      }
-    )(
-      start
-    )();
-  });
 
-asyncTest("basic aliased plugin test",
-  function()
-  {
-    expect(3);
-    o_o
-    (
-      "test_plugin",
-      {
-        test: true,
-        value: "this is a test value passed to the plugin"
-      }
-    )(
-      function()
-      {
-        ok(true,"function execution after plugin");
-        ok(this.last.result=="test plugin","plugin result");
-        ok(this.last.value=="this is a test value passed to the plugin","plugin passed value");
-        this.next();
-      }
-    )(
-      start
-    )();
-  });
-
-asyncTest("aliased plugin test with execution map",
-  function()
-  {
-    expect(4);
-    
-    o_o
-    (
-      "test_plugin",
-      {
-        test: true,
-        value: "this is a test value passed to the plugin"
-      }
-    )(
-      "function2",
-      function()
-      {
-        ok(true,"function execution after plugin");
-        ok(this.last.result=="test plugin","plugin result");
-        ok(this.last.value=="this is a test value passed to the plugin","plugin passed value");
-        this.next();
-      }
-    )(
-      "function1",
-      function()
-      {
-        ok(true,"function 1 execute");
-        setTimeout(this.next,1);
-      }
-    )(
-      "finish",
-      start
-    )(
-      {
-        "function1":"test_plugin",
-        "test_plugin":"function2",
-        "function2":"finish"
-      }
-    )();
-  });
-
-asyncTest("aliased plugin test with execution map and array",
-  function()
-  {
-    expect(7);
-    
-    o_o
-    (
-      "test_plugin1",
-      {
-        test: true,
-        value: "this is a test value passed to the plugin1"
-      }
-    )(
-      "test_plugin2",
-      {
-        test: true,
-        value: "this is a test value passed to the plugin2"
-      }
-    )(
-      "function2",
-      function()
-      {
-        ok(true,"function execution after plugin1");
-        ok(this.last.result=="test plugin","plugin result");
-        ok(this.last.value=="this is a test value passed to the plugin1","plugin passed value");
-        this.next();
-      }
-    )(
-      "function3",
-      function()
-      {
-        ok(true,"function execution after plugin2");
-        ok(this.last.result=="test plugin","plugin result");
-        ok(this.last.value=="this is a test value passed to the plugin2","plugin passed value");
-        this.next();
-      }
-    )(
-      "function1",
-      function()
-      {
-        ok(true,"function 1 execute");
-        setTimeout(this.next,1);
-      }
-    )(
-      "finish",
-      start
-    )(
-      {
-        "function1": [
-                      "test_plugin1",
-                      "test_plugin2"
-                     ],
-        "test_plugin1":"function2",
-        "test_plugin2":"function3",
-        "function3":"finish"
-      }
-    )();
-  });
-
-module("plugins - module loader");
-
-test("basic module loading",
-  function()
-  {
-  }
-);
-
-test("nested module loading",
-  function()
-  {
-  }
-);
-
-test("nested module loading of existing loaded modules",
-  function()
-  {
-  }
-);
-
-test("module load of jquery",
-  function()
-  {
-  }
-);
-
-test("module load of chains modules",
-  function()
-  {
-  }
-);
-
-module("plugins - threading");
-test("web workers",
-  function()
-  {
-  }
-);
-
-test("web workers unsupported",
-  function()
-  {
-  }
-);
-
-module("plugins - glsl");
