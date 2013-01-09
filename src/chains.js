@@ -2,6 +2,8 @@
 
    chains.js
 
+   version 0.1
+
    Javascript execution and management utility
 
    Copyright 2012 Clayton C. Gulick

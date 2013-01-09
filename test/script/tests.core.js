@@ -1278,6 +1278,80 @@ asyncTest("mixed synchronous, asyncronous, named, aliased, arrays execution_map"
   }
 );
 
+/**
+ * Tests synchronous execution of a looping chain, maintaining 'this' context
+ * across loop iterations
+ */
+test("looping chain, synchronous",
+  function()
+  {
+    expect(11);
+    o_o
+    (
+      "loop",
+      function()
+      {
+        if(!this.execution_count)
+          this.execution_count = 1;
+        else
+          this.execution_count++;
+
+        ok(true,"executing number: " + this.execution_count);
+
+        if(this.execution_count && this.execution_count < 10)
+        {
+          this.next();
+        }
+        else if(this.execution_count == 10)
+        {
+          ok(true,"execution count equals 10");
+        }
+      }
+    )(
+      {
+        "loop":"loop"
+      }
+    )();
+  });
+
+/**
+ * Tests asynchronous execution of a looping chain, maintaining 'this' context
+ * across loop iterations
+ */
+asyncTest("looping chain, asynchronous",
+  function()
+  {
+    expect(11);
+    o_o
+    (
+      "loop",
+      function()
+      {
+        if(!this.execution_count)
+          this.execution_count = 1;
+        else
+          this.execution_count++;
+
+        ok(true,"executing number: " + this.execution_count);
+
+        if(this.execution_count && this.execution_count < 10)
+        {
+          setTimeout(this.next,1);
+        }
+        else if(this.execution_count == 10)
+        {
+          ok(true,"execution count equals 10");
+          start();
+        }
+      }
+    )(
+      {
+        "loop":"loop"
+      }
+    )();
+  });
+
+
 module("nested chains");
 
 test("basic nested chains",
