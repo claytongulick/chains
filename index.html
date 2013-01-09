@@ -62,14 +62,13 @@
             function()
             {
               //...this will get executed next
-              var val = this.last.result;
-              //do someting with the last result, and store it in this context
-              this.result = val + ", more text";
-              var next = this.next();
+              var ctx = this; //store the this context in the ctx variable so it can be access within the async function
               setTimeout(
                 function()
                 {
-                  next();
+                  //do someting with the last result, and store it in this context
+                  this.result = ctx.last.result + ", more text";
+                  ctx.next();
                 }
               ,100);
             }
@@ -86,15 +85,21 @@
         </code>
       </pre>
       <p>In the above code, each inline function executes in order. There are some interesting parts that we'll examine here.</p>
+
       <code>this.result = "some value"</code>
+
       <p>Unlike MVC frameworks, chains embraces "functional programming" techniques. In chains, there's no separation between functions,
       models, and controllers. Functions <i>are</i> models, and all functions are chained together using the 'this' context. Each function 
       can access the values from the previous function by calling 'this.last'. This is chainable all the way back to the original function that
       was executed, via this.last.last.last... in the above line of code, a string ("some value") is assigned to the "result" property of the this context.</p>
+
       <code>this.next()</code>
+
       <p>Each function calls this.next() in order to progress to the next function in the chain. This can be executed synchronously, or
       as in the example from the second function, asynchronously (useful for ajax calls, and other asynchronous execution).</p>
-      <code> this.result = val + ", more text";</code>
+
+      <code> this.result = ctx.last.result + ", more text"; </code>
+
       <p>Values from previous functions can be accessed, modified, or stored in the current 'this' context for use in future calls</p>
       <pre>
       <code>
