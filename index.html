@@ -15,41 +15,244 @@
 
     <!-- HEADER -->
     <div id="header_wrap" class="outer">
-        <header class="inner">
-          <a id="forkme_banner" href="https://github.com/claytongulick/chains">View on GitHub</a>
+      <header class="inner">
+      <a id="forkme_banner" href="https://github.com/claytongulick/chains">View on GitHub</a>
 
-          <h1 id="project_title">chains.js</h1>
-          <h2 id="project_tagline">Javascript execution utility</h2>
+      <h1 id="project_title">chains.js</h1>
+      <h2 id="project_tagline">Javascript execution utility</h2>
 
-            <section id="downloads">
-              <a class="zip_download_link" href="https://github.com/claytongulick/chains/zipball/master">Download this project as a .zip file</a>
-              <a class="tar_download_link" href="https://github.com/claytongulick/chains/tarball/master">Download this project as a tar.gz file</a>
-            </section>
-        </header>
+      <section id="downloads">
+      <a class="zip_download_link" href="https://github.com/claytongulick/chains/zipball/master">Download this project as a .zip file</a>
+      <a class="tar_download_link" href="https://github.com/claytongulick/chains/tarball/master">Download this project as a tar.gz file</a>
+      </section>
+      </header>
     </div>
 
     <!-- MAIN CONTENT -->
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
-        <h1>chains</h1>
+      <h1>chains</h1>
 
-<p>Javascript execution utility</p>
+      <p>Javascript execution utility</p>
 
-<p>chains is a utility for managing the structure and execution of javascript.</p>
+      <p>chains.js is a utility for managing the structure and execution of javascript.</p>
 
-<p>chains is currently under active development and is not suitable for production use.</p>
+      <h3>Overview</h3>
+      <p>Chains allows for the managing of complex asychronous or sychronous application execution flow. Unlike OOP style MVC frameworks,
+      chains.js is a purely functional approach to managing application execution. Chains.js is not a framework, it is a simple utility
+      that allows developers to structure their code in a straight-forward manner. </p>
+
+      <p>Rather than deeply nested anonymous functions, callbacks, promises, deferreds, state management or other complex solutions to the
+      asychronous execution models, chains allows developers to simply chain functions and define the order of their execution, either
+      implicitly or explicitly.</p>
+
+      <h3>Basic Usage</h3>
+      <p>In it's most simple form, a chain is nothing more than a serial, in-order execution of a list of funcitons, either sychronous or asychronous.</p>
+      <pre>
+        <code>
+          o_o
+          (
+            function()
+            {
+              //...do something
+              this.result = "some value";
+              this.next();
+            }
+          )(
+            function()
+            {
+              //...this will get executed next
+              var val = this.last.result;
+              //do someting with the last result, and store it in this context
+              this.result = val + ", more text";
+              var next = this.next();
+              setTimeout(
+                function()
+                {
+                  next();
+                }
+              ,100);
+            }
+          )(
+            function()
+            {
+              //...this will be executed after the timeout has expired
+              var val = this.last.result;
+              console.log(this.last.last.result); //"some value"
+              console.log(val); // "some value, more text"
+              this.next();
+            }
+          )();
+        </code>
+      </pre>
+      <p>In the above code, each inline function executes in order. There are some interesting parts that we'll examine here.</p>
+      <code>this.result = "some value"</code>
+      <p>Unlike MVC frameworks, chains embraces "functional programming" techniques. In chains, there's no separation between functions,
+      models, and controllers. Functions <i>are</i> models, and all functions are chained together using the 'this' context. Each function 
+      can access the values from the previous function by calling 'this.last'. This is chainable all the way back to the original function that
+      was executed, via this.last.last.last... in the above line of code, a string ("some value") is assigned to the "result" property of the this context.</p>
+      <code>this.next()</code>
+      <p>Each function calls this.next() in order to progress to the next function in the chain. This can be executed synchronously, or
+      as in the example from the second function, asynchronously (useful for ajax calls, and other asynchronous execution).</p>
+      <code> this.result = val + ", more text";</code>
+      <p>Values from previous functions can be accessed, modified, or stored in the current 'this' context for use in future calls</p>
+      <pre>
+      <code>
+              var next = this.next();
+              setTimeout(
+                function()
+                {
+                  next();
+                }
+              ,100);
+      </code>
+      </pre>
+      <p>In this example, a reference to the 'next' function is stored in a local variable, and called from an anonymous inline asycnronously</p>
+
+      <h3>Execution Maps</h3>
+      <p>chains.js has many advanced execution pattern capabilties, most of which are driven by 'execution maps', objects that define
+      the mapping between functions and how a chain of execution flows. Execution maps are simple objects that link together functions:
+      <pre>
+        <code>
+          {
+            "function1":"function2",
+            "function2":"function3",
+            "function3":"function4"
+          }
+        </code>
+      </pre>
+      <p>Each key/value pair specifies the order of execution for functions. After function1 executes, function2 will be called. After function2,
+      function3, and so on.</p>
+      <p>More than one function can be triggered for execution by specifying an array for the value:</p>
+      <pre>
+        <code>
+          {
+            "function1":[
+                          "parallel_function1",
+                          "parallel_function2",
+                          "parallel_function3"
+                        ],
+            "parallel_function1": "accumulator",
+            "parallel_function2": "accumulator",
+            "parallel_function3": "accumulator",
+            "accumulator":"finish"
+          }
+        </code>
+      </pre>
+      <p>The "parallel" functions in the array above are executed in a simple loop, one after the other. If these functions are asyc, the 
+      calls are executed in parallel. In the above example, after each parallel function an "accumulator" function is called. This execution 
+      pattern allows for parallel synchronous and asychronous values to be accumulated in the 'this' context of the accumulator function,
+      then passed as 'last' to the 'finish' function.</p>
+      <p>Of course, in order for an execution map to work, each function must have a name to be mapped. In chains, functions can be passed by
+      name, or aliased. If the first parameter to a chains call is a string, it will be used as the alias for the function. Consider the following example:
+      <pre>
+        <code>
+          function someNamedFunction()
+          {
+            //...do something
+            this.next();
+          }
+
+          function anotherNamedFunction()
+          {
+            //...do more
+            this.next();
+          }
+
+          o_o
+          (
+            "someAliasedFunction",
+            function()
+            {
+              //this is the last function that will be executed
+            }
+          )(
+            someNamedFunction
+          )(
+            anotherNamedFunction
+          )(
+            {
+              "someNamedFunction":"anotherNamedFunction",
+              "anotherNamedFunction":"someAliasedFunction"
+            }
+          )();
+        </code>
+      </pre>
+      <p>In the above code, each function in the chain is either a regular, named function or an aliased function ("someAliasedFunction").
+      Passing a string as the first parameter creates an alias for the anonymous function and allows it to be mapped in the execution map.</p>
+
+      <h4>Nesting</h4>
+      <p>Chains can be nested, and are able to execute the 'this' context of the previously executed chain through the 'last' property.</p>
+      <pre>
+        <code>
+          o_o
+          (
+            o_o
+            (
+              function1
+            )(
+              function() {this.result="some value"; this.next();}
+            )
+          )(
+            function()
+            {
+              console.log(this.last.result); //"some value"
+            }
+          )();
+        </code>
+      </pre>
+      <p>Chains can be named and aliased like any other function:</p>
+      <pre>
+        <code>
+          var chain1 = o_o
+          (
+            function() { ... }
+          )(
+            function() { ... }
+          );
+
+          var chain2 = o_o
+          (
+            function() { ... }
+          )(
+            function() { ... }
+          );
+
+          o_o
+          (
+            chain1
+          )(
+            chain2
+          )(
+            "chain3",
+            o_o
+            (
+              function() { ... }
+            )(
+              function() { ... }
+            )
+          )(
+            {
+              "chain1":"chain2",
+              "chain2":"chain3"
+            }
+          )();
+        </code>
+      </pre>
+      <p>The above are just a few basic examples of what is possible with chains.js. Many more advanced execution patterns are possible.
+      For more information, review the wiki pages and the advanced usage examples, as well as the plugins.</p>
+
       </section>
     </div>
 
     <!-- FOOTER  -->
     <div id="footer_wrap" class="outer">
       <footer class="inner">
-        <p class="copyright">chains.js maintained by <a href="https://github.com/claytongulick">claytongulick</a></p>
-        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      <p class="copyright">chains.js maintained by <a href="https://github.com/claytongulick">claytongulick</a></p>
       </footer>
     </div>
 
-    
+
 
   </body>
 </html>
