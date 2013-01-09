@@ -21,19 +21,19 @@
 */
 
 o_o.plugins.push(
-  function(self,options)
+  function(self,options,alias)
   {
     //we want to handle any object passed in that have a property "test" that is truthy
     if(typeof options != 'object') return false; //returning false indicates that we're not handling this function call
     if(!options.test) return false;
-
-    self.functions.push(function()
+    var fn = function()
     {
       this.result="test plugin";
       this.value = options.value;
-      this.next();
-      //setTimeout(this.next,1); //execute next asynchronously
-    });
+      setTimeout(this.next,1); //execute next asynchronously
+    };
+    if(alias) fn.alias=alias;
+    self.functions.push(fn);
 
     return true;
 

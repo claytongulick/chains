@@ -31,6 +31,8 @@ o_o =  function()
     functions: [],
     current_index: 0,
     execution_map: null,
+    error_handler: null,
+    err: null
   });
 
   /**
@@ -65,11 +67,22 @@ o_o =  function()
     }
       
     fn.start_execute = new Date().getTime(); //tag the start time for runtime performance evaluation
+    var thys;
+    if(fn.thys)
+      thys = fn.thys;
+    else
     //create a 'this' context for the invoked function
     //this context contains the next and last members, which allow chaining.
     //the next member is a closure around o_o.next
-    var thys = {
-        last: last,
+      thys = {
+        error: function(err) 
+        { 
+          self.err=err; 
+          if(self.error_handler) 
+          {  
+            self.error_handler(err); 
+          }
+        },
         next: function()
         {
           //check to see if we've been invoked from a different chain, this supports nesting chains
@@ -88,6 +101,8 @@ o_o =  function()
           }
         }
     };
+    thys.last=last; //set or update the 'last' member
+    fn.thys=thys; //cache the thys context for use in later calls to this function. this is primarily used for accumulator type functions
     fn.apply(thys,[]);
   }
 
@@ -118,7 +133,8 @@ o_o =  function()
           {
             if (Object.prototype.toString.call(next_fn) == '[object Array]')
               for(i=0; i < next_fn.length; i++)
-                call_fn(next_fn[i],last);
+                if(!self.err)
+                  call_fn(next_fn[i],last);
           }
           else
             if(typeof next_fn == 'string')
@@ -173,11 +189,20 @@ o_o =  function()
         case 'string': //strings are assumed to be aliases
           if(args.length==1) break; //a string alone is meaningless
 
+          if(args[0]=='error')
+          {
+            if(typeof args[1] == 'function')
+            {
+              self.error_handler=args[1]
+              break;
+            }
+          }
+
           //check to see if we have any plugins that will handle this call
           if(o_o.plugins.length && (typeof args[1] == 'object'))
           {
             for(var i=0; i < o_o.plugins.length; i++)
-              if(o_o.plugins[i](self,args[1])) {handled = true; break;}
+              if(o_o.plugins[i](self,args[1],args[0])) {handled = true; break;}
           }
 
           if(handled) break; //the plugin handled this, move on
