@@ -38,13 +38,20 @@
       <p>chains.js is a utility for managing the structure and execution of javascript.</p>
 
       <h3>Overview</h3>
-      <p>Chains allows for the managing of complex asychronous or sychronous application execution flow. Unlike OOP style MVC frameworks,
-      chains.js is a purely functional approach to managing application execution. Chains.js is not a framework, it is a simple utility
-      that allows developers to structure their code in a straight-forward manner. </p>
+      <p>Chains allows for the managing of complex asychronous or sychronous application execution flow. Chains is a purely functional approach to 
+      managing application execution. Chains.js is not a framework, it is a simple utility that allows developers to structure their code in a straight-forward manner,
+      though as mentioned below, sophisticated application orchestration is possible by compositing chains together. </p>
 
       <p>Rather than deeply nested anonymous functions, callbacks, promises, deferreds, state management or other complex solutions to the
       asychronous execution models, chains allows developers to simply chain functions and define the order of their execution, either
       implicitly or explicitly.</p>
+
+      <p>One of the greatest things about chains is that they are reusable and nestable, meaning that a chain can be assigned to a variable and reused inside
+      of other chains later. This provides a convenient development pattern where larger complex chains can be built from smaller chains.</p>
+      <p>For example, you could develop a chain that goes out and retrieves posts from a Twitter feed, and name it "twitter_chain". Another chain could be used to 
+      retrieve facebook posts and named "facebook_chain". Then, a composite chain could be created called something like "social_chain" which contains the twitter_chain
+      and the facebook_chain subchains. This chain can then be combined with other chains, perhaps an "authenticate_chain" and a "get_app_data" chain into one large
+      "main_chain", which when executed orchestrates all of the complex async loads for the entire app.</p>
 
       <h3>Installation</h3>
       <p>For browsers, just include a reference to chains.js, i.e. &lt;script src='script/lib/chains.js'&gt;&lt;&t;</p>
@@ -123,14 +130,6 @@
       </code>
       </pre>
       <p>In this example, a reference to the 'next' function is stored in a local variable, and called from an anonymous inline asycnronously</p>
-
-      <p>One of the greatest things about chains is that they are reusable and nestable, meaning that a chain can be assigned to a variable and reused inside
-      of other chains later. This provides a convenient development pattern where larger complex chains can be built from smaller chains.</p>
-      <p>For example, you could develop a chain that goes out and retrieves posts from a Twitter feed, and name it "twitter_chain". Another chain could be used to 
-      retrieve facebook posts and named "facebook_chain". Then, a composite chain could be created called something like "social_chain" which contains the twitter_chain
-      and the facebook_chain subchains. This chain can then be combined with other chains, perhaps an "authenticate_chain" and a "get_app_data" chain into one large
-      "main_chain", which when executed orchestrates all of the complex async loads for the entire app.</p>
-
 
       <h3>Execution Maps</h3>
       <p>chains.js has many advanced execution pattern capabilties, most of which are driven by 'execution maps', objects that define
