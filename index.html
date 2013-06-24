@@ -97,8 +97,9 @@
 
       <code>this.result = "some value"</code>
 
-      <p>Unlike MVC frameworks, chains embraces "functional programming" techniques. In chains, there's no separation between functions,
-      models, and controllers. Functions <i>are</i> models, and all functions are chained together using the 'this' context. Each function 
+      <p>Chains embraces "functional programming" techniques. In chains, there's no separation between functions,
+      models, and controllers. There's no need to tie everything together with complex event pathways. Functions <i>are</i> models, and all functions are 
+      chained together using the 'this' context. Each function 
       can access the values from the previous function by calling 'this.last'. This is chainable all the way back to the original function that
       was executed, via this.last.last.last... in the above line of code, a string ("some value") is assigned to the "result" property of the this context.</p>
 
@@ -122,6 +123,14 @@
       </code>
       </pre>
       <p>In this example, a reference to the 'next' function is stored in a local variable, and called from an anonymous inline asycnronously</p>
+
+      <p>One of the greatest things about chains is that they are reusable and nestable, meaning that a chain can be assigned to a variable and reused inside
+      of other chains later. This provides a convenient development pattern where larger complex chains can be built from smaller chains.</p>
+      <p>For example, you could develop a chain that goes out and retrieves posts from a Twitter feed, and name it "twitter_chain". Another chain could be used to 
+      retrieve facebook posts and named "facebook_chain". Then, a composite chain could be created called something like "social_chain" which contains the twitter_chain
+      and the facebook_chain subchains. This chain can then be combined with other chains, perhaps an "authenticate_chain" and a "get_app_data" chain into one large
+      "main_chain", which when executed orchestrates all of the complex async loads for the entire app.</p>
+
 
       <h3>Execution Maps</h3>
       <p>chains.js has many advanced execution pattern capabilties, most of which are driven by 'execution maps', objects that define
