@@ -1,0 +1,18 @@
+{
+  "author": "Clayton Gulick <clay@ratiosoftware.com>",
+  "name": "chainsjs",
+  "description": "Utility for managing asynchronous program flow",
+  "version": "0.1.0",
+  "homepage": "http://chainsjs.org",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/claytongulick/chains.git"
+  },
+  "main": "src/chains.js",
+  "dependencies": {},
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "engines": {
+    "node": "*"
+  }
+}
