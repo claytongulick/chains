@@ -26,6 +26,9 @@ o_o =  function()
   var args = arguments;
   var fn;
 
+  if(!window) 
+    var window = global; //for running in node
+
   //if this==window this is an initial invocation, create the self context that will be passed to chained calls
   //if this!=window, this is a chained call, and 'self' has been applied as 'this', so get a reference to it
   var self = (this != window ? this :
