@@ -1,5 +1,5 @@
 
-module("no execution map")
+QUnit.module("no execution map")
 /**
  * This tests execution of synchronous anonymous functions
  */
@@ -478,7 +478,7 @@ asyncTest("named functions, asynchronous, no execution map",
 /**
  * All execution flow with maps
  */
-module("execution map");
+QUnit.module("execution map");
 /**
  * This tests execution of synchronous aliased functions
  */
@@ -1352,7 +1352,7 @@ asyncTest("looping chain, asynchronous",
   });
 
 
-module("nested chains");
+QUnit.module("nested chains");
 
 test("basic nested chains",
   function()

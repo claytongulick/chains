@@ -253,3 +253,6 @@ o_o =  function()
 }
 
 o_o.plugins=[]; //init plugins array
+
+if(module && module.exports)
+  module.exports = o_o;
