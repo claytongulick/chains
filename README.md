@@ -9,7 +9,7 @@ Installation
 ------------
 For browsers, just include a reference to chains.js, i.e.
 
-    &lt;script src='script/lib/chains.js'&gt;&lt;script&gt;
+    <script src='script/lib/chains.js'><script>
 For node
 
     npm install chainsjs
