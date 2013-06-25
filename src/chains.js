@@ -100,7 +100,7 @@ o_o =  function()
           {
             fn.end_execute = new Date().getTime();
             //copy the 'this' context and preserve it once execution context has faded
-            for(key in thys)
+            for(var key in thys)
               fn[key] = thys[key];
             next(fn);
           }
