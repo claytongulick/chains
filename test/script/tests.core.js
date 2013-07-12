@@ -42,6 +42,42 @@ test("anonymous functions, synchronous, no execution map",
   }
 );
 
+test("nested error handler",function()
+{
+  expect(1);
+  var chain1 = o_o
+  (
+    function()
+    {
+      this.next();
+    }
+  )(
+    function()
+    {
+      //raise error
+      throw new Error("test");
+      this.next();
+    }
+  );
+
+  o_o
+  (
+    function()
+    {
+      this.next();
+    }
+  )(
+    chain1
+  )(
+    "error",
+    function()
+    {
+      ok(true,"error handler executed");
+    }
+  )
+  ();
+});
+
 test("anonymous functions, synchronous, error",
   function()
   {

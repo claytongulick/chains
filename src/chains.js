@@ -49,6 +49,20 @@ o_o =  function()
   });
 
   /**
+   * Search for an error handler in the chain hierarchy
+   */
+  function err(err)
+  {
+    var slf=self;
+    while(slf)
+    {
+      if(slf.error_handler)
+        return slf.error_handler(err);
+      slf=self.parent;
+    }
+  }
+
+  /**
    * Utility to call the fn with the given name.
    * This just spins through the functions[] until it finds a function with the given name and executes it
    * If name is a function, it will be executed directly
@@ -90,13 +104,11 @@ o_o =  function()
         //pass the name or alias into the 'this' context. This is useful for
         //execution maps of aliased nested chains
         __alias: fn.alias || fn.name,
-        error: function(err) 
+        __parent: self,
+        error: function(errorObj) 
         { 
-          self.err=err; 
-          if(self.error_handler) 
-          {  
-            self.error_handler(err); 
-          }
+          self.err=errorObj; 
+          err(errorObj);
         },
         
         next: function(nextFnName)
@@ -132,8 +144,8 @@ o_o =  function()
     }
     catch(ex)
     {
-      if(self.error_handler)
-        self.error_handler(ex);
+      debug("Exception thrown during execution: " + JSON.stringify(ex));
+      err(ex);
     }
   }
 
@@ -294,6 +306,8 @@ o_o =  function()
               self.last=this.last;
             if(this.__alias)
               self.alias=this.__alias;
+            if(this.__parent)
+              self.parent=this.__parent;
 
             //closure around self
             return o_o.apply(self,arguments); 
