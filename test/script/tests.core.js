@@ -1,5 +1,6 @@
 
 QUnit.module("no execution map")
+o_o.debug=true;
 /**
  * This tests execution of synchronous anonymous functions
  */

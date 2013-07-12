@@ -20,6 +20,16 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+var console;
+//get node console instance
+if(((typeof require) != "undefined") && 
+   ((typeof module) != "undefined") && 
+   ((typeof module.exports) != "undefined"))
+  console=require("console");
+
+//check to see if we're using a browser that doesn't support console
+if(!console)
+  console={log:function(message){}}
 
 o_o =  function()
 {
@@ -70,6 +80,7 @@ o_o =  function()
     }
       
     fn.start_execute = new Date().getTime(); //tag the start time for runtime performance evaluation
+    debug("Executing function: " + (fn.name || fn.alias || "anonymous") + " start time: " + fn.start_execute);
     var thys;
 
     //create a 'this' context for the invoked function
@@ -94,12 +105,14 @@ o_o =  function()
           if(this.__last) //check to see if 'last' is being passed up from a nested chain
           {
             this.__last.end_execute = new Date().getTime();
+            debug("Function chain: " + this.__alias + " complete. End execution time: " + this.__last.end_execute + " total time: " + (this.__last.end_execute - this.__last.start_execute));
             this.__last.alias=this.__alias;
             next(this.__last,nextFnName)
           }
           else
           {
             fn.end_execute = new Date().getTime();
+            debug("Function: " + (fn.alias || fn.name || "anonymous") + " complete. End execution time: " + fn.end_execute + " total time: " + (fn.end_execute - fn.start_execute));
             //copy the 'this' context and preserve it once execution context has faded
             for(key in thys)
               fn[key] = thys[key];
@@ -146,6 +159,7 @@ o_o =  function()
 
     if(nextFnName) 
     {
+      debug("Skipping to function: " + nextFnName);
       //check to see if the function is in the list of self.functions, if not, it could be in a parent chain, so apply self.next
       for(var i=0;i<self.functions.length;i++)
       {
@@ -201,58 +215,62 @@ o_o =  function()
   {
     var handled=false;
 
-    if(!handled) //if a plugin didn't handle the call, take default actions
-      switch(typeof args[0])
-      {
-        case 'function': //functions get queued
-          fn = args[0];
+    switch(typeof args[0])
+    {
+      case 'function': //functions get queued
+        fn = args[0];
+        debug("Adding function: " + fn.name || "anonymous" + " to function queue.");
+        self.functions.push(fn);
+        break;
+      case 'object': //objects are interpreted as an execution map
+        debug("Checking plugins...");
+        //check to see if we have any plugins that will handle this call
+        if(o_o.plugins.length)
+        {
+          for(var i=0; i < o_o.plugins.length; i++)
+            if(o_o.plugins[i](self,args[0])) {handled = true;debug("found plugin"); break;}
+        }
+
+        if(handled) break; //the plugin handled this, move on
+        debug("Registering execution map");
+        self.execution_map = args[0];
+        break;
+      case 'string': //strings are assumed to be aliases
+        if(args.length==1) break; //a string alone is meaningless
+
+        if(args[0]=='error')
+        {
+          if(typeof args[1] == 'function')
+          {
+            self.error_handler=args[1]
+            break;
+          }
+        }
+
+        //check to see if we have any plugins that will handle this call
+        if(o_o.plugins.length && (typeof args[1] == 'object'))
+        {
+          for(var i=0; i < o_o.plugins.length; i++)
+            if(o_o.plugins[i](self,args[1],args[0])) {handled = true; break;}
+        }
+
+        if(handled) break; //the plugin handled this, move on
+
+        fn = args[1];
+        if(typeof fn == 'function') //if a function was passed in, queue it. ignore anything else
+        {
+          fn.alias=args[0];
+          debug("Registering aliased function: " + fn.alias);
           self.functions.push(fn);
-          break;
-        case 'object': //objects are interpreted as an execution map
-          //check to see if we have any plugins that will handle this call
-          if(o_o.plugins.length)
-          {
-            for(var i=0; i < o_o.plugins.length; i++)
-              if(o_o.plugins[i](self,args[0])) {handled = true; break;}
-          }
-
-          if(handled) break; //the plugin handled this, move on
-          self.execution_map = args[0];
-          break;
-        case 'string': //strings are assumed to be aliases
-          if(args.length==1) break; //a string alone is meaningless
-
-          if(args[0]=='error')
-          {
-            if(typeof args[1] == 'function')
-            {
-              self.error_handler=args[1]
-              break;
-            }
-          }
-
-          //check to see if we have any plugins that will handle this call
-          if(o_o.plugins.length && (typeof args[1] == 'object'))
-          {
-            for(var i=0; i < o_o.plugins.length; i++)
-              if(o_o.plugins[i](self,args[1],args[0])) {handled = true; break;}
-          }
-
-          if(handled) break; //the plugin handled this, move on
-
-          fn = args[1];
-          if(typeof fn == 'function') //if a function was passed in, queue it. ignore anything else
-          {
-            fn.alias=args[0];
-            self.functions.push(fn);
-          }
-          break;
-        default:
-          break;
-      }
+        }
+        break;
+      default:
+        break;
+    }
   }
   else
   {
+    debug("Executing chain...");
     //no arguments were passed, this means it's time to execute starting at the head of the chain
     if(self.execution_map)
       for(key in self.execution_map)
@@ -280,6 +298,12 @@ o_o =  function()
             //closure around self
             return o_o.apply(self,arguments); 
           };
+}
+
+function debug(message)
+{
+  if(o_o.debug)
+    console.log(message);
 }
 
 o_o.plugins=[]; //init plugins array
