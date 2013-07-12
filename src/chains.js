@@ -70,15 +70,14 @@ o_o =  function()
       
     fn.start_execute = new Date().getTime(); //tag the start time for runtime performance evaluation
     var thys;
-    /*if(fn.thys)
-    {
-      thys = fn.thys;
-    }
-    else*/
+
     //create a 'this' context for the invoked function
     //this context contains the next and last members, which allow chaining.
     //the next member is a closure around o_o.next
       thys = {
+        //pass the name or alias into the 'this' context. This is useful for
+        //execution maps of aliased nested chains
+        __alias: fn.alias || fn.name,
         error: function(err) 
         { 
           self.err=err; 
@@ -87,13 +86,15 @@ o_o =  function()
             self.error_handler(err); 
           }
         },
-        next: function()
+        
+        next: function(nextFnName)
         {
           //check to see if we've been invoked from a different chain, this supports nesting chains
           if(this.__last) //check to see if 'last' is being passed up from a nested chain
           {
             this.__last.end_execute = new Date().getTime();
-            next(this.__last)
+            this.__last.alias=this.__alias;
+            next(this.__last,nextFnName)
           }
           else
           {
@@ -101,7 +102,7 @@ o_o =  function()
             //copy the 'this' context and preserve it once execution context has faded
             for(key in thys)
               fn[key] = thys[key];
-            next(fn);
+            next(fn,nextFnName);
           }
         }
     };
@@ -136,14 +137,28 @@ o_o =  function()
    *
    * In many cases, the chained function will itself be a new execution chain
    */
-  function next(last)
+  function next(last,nextFnName)
   {
     var next_fn=null;
     var i=0;
-    if(self.execution_map)
+    var lastFnName = nextFnName || last.alias || last.name;
+
+    if(nextFnName) 
+    {
+      //check to see if the function is in the list of self.functions, if not, it could be in a parent chain, so apply self.next
+      for(var i=0;i<self.functions.length;i++)
+      {
+        if(self.functions[i].name==nextFnName || self.functions[i].alias == nextFnName)
+          return call_fn(nextFnName,last);
+      }
+      //apply self.next in hopes that we can skip to a parent chain
+      if(self.next)
+        self.next.apply({__last:last,__alias:self.alias},[nextFnName]);
+    }
+    else if(self.execution_map)
     {
       for(var key in self.execution_map)
-        if(key==last.alias || key==last.name)
+        if(key==lastFnName)
         {
           next_fn = self.execution_map[key];
           if(typeof next_fn == 'object')
@@ -160,7 +175,7 @@ o_o =  function()
       if(!next_fn)
       {
         if(self.next)
-          self.next.apply({__last:last},[]);
+          self.next.apply({__last:last,__alias:self.alias},[nextFnName]);
       }
     }
     else
@@ -170,7 +185,7 @@ o_o =  function()
       {
         if(self.next)
         {
-          self.next.apply({__last:last},[]); //if we're a nested chain call next()
+          self.next.apply({__last:last,__alias:self.alias},[nextFnName]); //if we're a nested chain call next()
         }
         return;
       }
@@ -253,10 +268,13 @@ o_o =  function()
   return function() 
           { 
             //handle nested chains, carry assignment of next() and 'last' through to 'this' context of tail and head functions
+            //also grab the __alias in case we're an aliased nested chain
             if(this.next)
               self.next=this.next;
             if(this.last)
               self.last=this.last;
+            if(this.__alias)
+              self.alias=this.__alias;
 
             //closure around self
             return o_o.apply(self,arguments); 

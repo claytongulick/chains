@@ -1329,6 +1329,79 @@ asyncTest("mixed synchronous, asyncronous, named, aliased, arrays execution_map"
   }
 );
 
+test("skipping order, sync",
+  function()
+  {
+    expect(1);
+    var step1 = o_o(
+      function()
+      {
+        this.accumulator.lastValue=1;
+        this.next("step3");
+      });
+    var step2 = o_o(
+      function()
+      {
+        ok(this.accumulator.lastValue==3,"last val is 3");
+        this.next();
+      });
+    var step3 = o_o(
+      function()
+      {
+        ok(this.accumulator.lastValue==1,"last val is 1");
+        this.accumulator.lastValue=3;
+        this.next();
+      });
+
+    o_o("step1", step1 )("step2", step2 )("step3", step3 )
+    (
+      {
+        "step1":"step2",
+        "step2":"step3"
+      }
+    )
+    ();
+  });
+/*
+
+asyncTest("skipping order, async",
+  function()
+  {
+    expect(2);
+    var step1 = o_o(
+      function()
+      {
+        this.accumulator.lastValue=1;
+        //next("step3");
+        next();
+      });
+    var step2 = o_o(
+      function()
+      {
+        ok(this.accumulator.lastValue=3,"last val is 3");
+        start();
+        this.next();
+      });
+    var step3 = o_o(
+      function()
+      {
+        ok(this.accumulator.lastValue=1,"last val is 1");
+        this.accumulator.lastValue=3;
+        //next("step2");
+        next();
+      });
+
+    o_o("step1", step1 )("step2", step2 )("step3", step3 )
+    (
+      {
+        "step1":"step2",
+        "step2":"step3"
+      }
+    )
+    ();
+  });
+*/
+
 /**
  * Tests synchronous execution of a looping chain, maintaining 'this' context
  * across loop iterations
@@ -1584,6 +1657,110 @@ asyncTest("nested named chains",
 
   }
 );
+
+/**
+ * Test using chains of chains with exection_map 
+ * This uses both synchronous functions
+ * Simple list of named chains
+ */
+test("nested simple named chains,sync, execution map",
+  function()
+  {
+    expect(6);
+    var chain1 = o_o
+      (
+        function()
+        {
+          ok(true,"chain1 execute, first function");
+          this.result=1;
+          this.accumulator.value1=true;
+          this.next();
+        }
+      );
+    var chain2 = o_o
+    (
+      function()
+      {
+        ok(true,"chain2 function 1 execute");
+        this.result=2;
+        this.accumulator.value2=true;
+        ok(this.last.result==1,"previous chain result");
+        this.next();
+      }
+    );
+    var chain3 = o_o
+    (
+      function()
+      {
+        ok(true,"chain3 function 1 execute");
+        this.accumulator.value3=true;
+        ok(this.last.result==2,"previous chain result");
+        ok(this.last.last.result==1,"previous chain result");
+        this.next();
+      }
+    );
+    o_o ( "chain1",chain1 )("chain2", chain2 )("chain3", chain3 )(
+      {
+        "chain1":"chain2",
+        "chain2":"chain3",
+      }
+    )();
+
+  }
+);
+
+/**
+ * Test using chains of chains with exection_map 
+ * This uses both synchronous and async functions
+ * Simple list of named chains
+ */
+asyncTest("nested simple named chains,async, execution map",
+  function()
+  {
+    expect(6);
+    var chain1 = o_o
+      (
+        function()
+        {
+          ok(true,"chain1 execute, first function");
+          this.result=1;
+          this.accumulator.value1=true;
+          this.next();
+        }
+      );
+    var chain2 = o_o
+    (
+      function()
+      {
+        ok(true,"chain2 function 1 execute");
+        this.result=2;
+        this.accumulator.value2=true;
+        ok(this.last.result==1,"previous chain result");
+        setTimeout(this.next,1);
+      }
+    );
+    var chain3 = o_o
+    (
+      function()
+      {
+        ok(true,"chain3 function 1 execute");
+        this.accumulator.value3=true;
+        ok(this.last.result==2,"previous chain result");
+        ok(this.last.last.result==1,"previous chain result");
+        setTimeout(this.next,1);
+      }
+    );
+    o_o ("chain1", chain1 )("chain2", chain2 )("chain3", chain3 )("chain4", function() {start();})(
+      {
+        "chain1":"chain2",
+        "chain2":"chain3",
+        "chain3":"chain4"
+      }
+    )();
+
+  }
+);
+
 
 
 
