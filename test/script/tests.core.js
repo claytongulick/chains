@@ -1115,15 +1115,16 @@ asyncTest("asynchronous, execution_map, array, accumulator function",
     ();
   }
 );
-asyncTest("mixed synchronous, asyncronous, named, aliased, anonymous no execution_map",
+asyncTest("mixed synchronous, asyncronous, named, aliased, anonymous, accumulator no execution_map",
   function()
   {
-    expect(14);
+    expect(15);
     function function1()
     {
       ok(true,"named function 1 execute");
       this.result = 1;
       this.data_object = { test: "value 1" };
+      this.accumulator.value1 = true;
       this.next();
     }
 
@@ -1132,6 +1133,7 @@ asyncTest("mixed synchronous, asyncronous, named, aliased, anonymous no executio
       ok(true,"named function 2 execute");
       this.result = 2;
       this.data_object = { test: "value 2" };
+      this.accumulator.value2=true;
       ok(this.last.result==1,"previous link result");
       ok(this.last.data_object.test=="value 1","previous link data object result");
       var nxt = this.next;
@@ -1150,6 +1152,7 @@ asyncTest("mixed synchronous, asyncronous, named, aliased, anonymous no executio
         ok(true,"aliased function 3 execute");
         this.result=3;
         this.data_object = { test: "value 3" };
+        this.accumulator.value3=true;
         ok(this.last.result==2,"previous link result");
         ok(this.last.data_object.test=="value 2","previous link data object result");
         ok(this.last.last.result==1,"previous previous link result");
@@ -1164,6 +1167,7 @@ asyncTest("mixed synchronous, asyncronous, named, aliased, anonymous no executio
         ok(this.last.data_object.test=="value 3","previous link data object result");
         ok(this.last.last.result==2,"previous previous link result");
         ok(this.last.last.data_object.test=="value 2","previous previous link data object result");
+        ok(this.accumulator.value1 && this.accumulator.value2 && this.accumulator.value3,"accumulator values correct");
         start();
         this.next();
       }
@@ -1357,7 +1361,7 @@ QUnit.module("nested chains");
 test("basic nested chains",
   function()
   {
-    expect(6);
+    expect(7);
     o_o
     (
       o_o
@@ -1367,6 +1371,7 @@ test("basic nested chains",
           this.chain="inner chain";
           ok(true,"inner chain 1, function 1");
           this.result=1;
+          this.accumulator.value1=true;
           this.next();
         }
       )(
@@ -1374,6 +1379,7 @@ test("basic nested chains",
         {
           ok(true,"inner chain 1, function 2");
           this.result=2;
+          this.accumulator.value2=true;
           this.next();
         }
       )
@@ -1385,6 +1391,7 @@ test("basic nested chains",
           ok(true,"inner chain 2, function 1");
           ok(this.last.result==2,"previous chain result");
           ok(this.last.last.result==1,"previous previous chain result");
+          ok(this.accumulator.value1 && this.accumulator.value2,"accumulator values correct");
           this.next();
         }
       )(
@@ -1479,13 +1486,14 @@ asyncTest("nested anonymous chains",
 asyncTest("nested named chains",
   function()
   {
-    expect(8);
+    expect(9);
     chain2 = o_o
     (
       function()
       {
         ok(true,"chain2 function 1 execute");
         this.result=3;
+        this.accumulator.value3=true;
         ok(this.last.result==2,"previous chain result");
         ok(this.last.last.result==1,"previous chain result");
         setTimeout(this.next,1);
@@ -1495,6 +1503,7 @@ asyncTest("nested named chains",
       {
         ok(true,"chain2 function 2 execute");
         ok(this.last.result==3,"previous chain result");
+        ok(this.accumulator.value1 && this.accumulator.value2 && this.accumulator.value3,"accumulator values correct");
         this.next();
       }
     );
@@ -1507,6 +1516,7 @@ asyncTest("nested named chains",
         {
           ok(true,"chain1 execute, first function");
           this.result=1;
+          this.accumulator.value1=true;
           this.next();
         }
       )(
@@ -1515,6 +1525,7 @@ asyncTest("nested named chains",
           ok(true,"chain1 execute, second function, async next");
           ok(this.last.result==1,"previous result");
           this.result=2;
+          this.accumulator.value2=true;
           setTimeout(this.next,10); 
         }
       )

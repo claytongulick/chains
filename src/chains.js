@@ -28,14 +28,13 @@ o_o =  function()
 
   //if this==window this is an initial invocation, create the self context that will be passed to chained calls
   //if this!=window, this is a chained call, and 'self' has been applied as 'this', so get a reference to it
-  var self = (this.__o_o__ ? this :
+  var self = (this != window ? this :
   {
     functions: [],
     current_index: 0,
     execution_map: null,
     error_handler: null,
-    err: null,
-    __o_o__: true //sentinel flag to track current context. Indicates that we're in a chain
+    err: null
   });
 
   /**
@@ -72,7 +71,9 @@ o_o =  function()
     fn.start_execute = new Date().getTime(); //tag the start time for runtime performance evaluation
     var thys;
     if(fn.thys)
+    {
       thys = fn.thys;
+    }
     else
     //create a 'this' context for the invoked function
     //this context contains the next and last members, which allow chaining.
@@ -98,13 +99,17 @@ o_o =  function()
           {
             fn.end_execute = new Date().getTime();
             //copy the 'this' context and preserve it once execution context has faded
-            for(var key in thys)
+            for(key in thys)
               fn[key] = thys[key];
             next(fn);
           }
         }
     };
     thys.last=last; //set or update the 'last' member
+    //create a forward accumulating object for carrying values forward into each call. This can be used to always keep certain values
+    //at the front of the chain, instead of needing to call this.last.last.last.someValue, this.accumulator.someValue will always be present
+    //if it's set anywhere in the chain
+    thys.accumulator = last.accumulator || {}; 
     fn.thys=thys; //cache the thys context for use in later calls to this function. this is primarily used for accumulator type functions
     fn.apply(thys,[]);
   }
@@ -114,6 +119,7 @@ o_o =  function()
    *
    * It operates differently depending on whether an execution map has been passed in.
    *
+   * If an execution map has been specified, it will look for the function or array specified to be chained to the
    * If an execution map has been specified, it will look for the function or array specified to be chained to the
    * end of the current call. In the case of an array, it will call the next item in the array until all functions in the array have 
    * been executed.
@@ -235,7 +241,6 @@ o_o =  function()
       call_fn(self.functions[0],self.last||self);
   }
 
-  //return a closure that will hold the self object
   //this allows chaining of calls, while preserving context in the 'self' variable
   return function() 
           { 
@@ -251,6 +256,3 @@ o_o =  function()
 }
 
 o_o.plugins=[]; //init plugins array
-
-if(module && module.exports)
-  module.exports = o_o;
