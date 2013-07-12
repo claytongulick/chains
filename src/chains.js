@@ -28,13 +28,14 @@ o_o =  function()
 
   //if this==window this is an initial invocation, create the self context that will be passed to chained calls
   //if this!=window, this is a chained call, and 'self' has been applied as 'this', so get a reference to it
-  var self = (this != window ? this :
-  {
+ var self = (this.__o_o__ ? this :  
+ {
     functions: [],
     current_index: 0,
     execution_map: null,
     error_handler: null,
-    err: null
+    err: null,
+    __o_o__: true //sentinel flag to track current context. Indicates that we're in a chain
   });
 
   /**
@@ -282,3 +283,7 @@ o_o =  function()
 }
 
 o_o.plugins=[]; //init plugins array
+
+if(module && module.exports)
+  module.exports = o_o;
+
