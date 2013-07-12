@@ -325,6 +325,53 @@ asyncTest("anonymous functions, asynchronous, no execution map",
   }
 );
 
+/**
+ * This tests execution of asynchronous anonymous functions where the same function is used in multiple chains
+ */
+asyncTest("anonymous functions, asynchronous, function used in multiple chains",
+  function()
+  {
+    expect(7);
+
+    var fn = function()
+      {
+        ok(true,"anonymous function 1 execute");
+        this.result = 1;
+        this.data_object = { test: "value 1" };
+        setTimeout(this.next, 1);
+      }
+
+    o_o
+    (
+      fn
+    )(
+      function()
+      {
+        ok(true,"anonymous function 2 execute");
+        ok(this.last.result==1,"previous link result");
+        setTimeout(this.next, 1);
+        start();
+      }
+    )
+    ();
+
+    o_o
+    (
+      fn
+    )(
+      function()
+      {
+        ok(true,"anonymous function 3 execute");
+        ok(true,"anonymous function 3 execute");
+        ok(this.last.result==1,"previous link result");
+        setTimeout(this.next, 1);
+      }
+    )
+    ();
+  }
+);
+
+
 asyncTest("anonymous functions, asynchronous, no execution map, error",
   function()
   {
@@ -879,20 +926,20 @@ test("synchronous, execution_map, array, accumulator function",
         if(this.last.result1)
         {
           ok(true,"first result");
-          this.result1 = this.last.result1;
+          this.accumulator.result1 = this.last.result1;
         }
         if(this.last.result2)
         {
           ok(true,"second result");
-          this.result2 = this.last.result2;
+          this.accumulator.result2 = this.last.result2;
         }
         if(this.last.result3)
         {
           ok(true,"third result");
-          this.result3 = this.last.result3;
+          this.accumulator.result3 = this.last.result3;
         }
 
-        if(this.result1 && this.result2 && this.result3)
+        if(this.accumulator.result1 && this.accumulator.result2 && this.accumulator.result3)
         {
           ok(true,"accumulator complete");
           this.next();
@@ -902,9 +949,9 @@ test("synchronous, execution_map, array, accumulator function",
       "finish",
       function()
       {
-        ok(this.last.result1==4,"correct result 1");
-        ok(this.last.result2==5,"correct result 2");
-        ok(this.last.result3==6,"correct result 3");
+        ok(this.accumulator.result1==4,"correct result 1");
+        ok(this.accumulator.result2==5,"correct result 2");
+        ok(this.accumulator.result3==6,"correct result 3");
       }
     )(
       {
@@ -1071,20 +1118,20 @@ asyncTest("asynchronous, execution_map, array, accumulator function",
         if(this.last.result1)
         {
           ok(true,"first result");
-          this.result1 = this.last.result1;
+          this.accumulator.result1 = this.last.result1;
         }
         if(this.last.result2)
         {
           ok(true,"second result");
-          this.result2 = this.last.result2;
+          this.accumulator.result2 = this.last.result2;
         }
         if(this.last.result3)
         {
           ok(true,"third result");
-          this.result3 = this.last.result3;
+          this.accumulator.result3 = this.last.result3;
         }
 
-        if(this.result1 && this.result2 && this.result3)
+        if(this.accumulator.result1 && this.accumulator.result2 && this.accumulator.result3)
         {
           ok(true,"accumulator complete");
           setTimeout(this.next,1);
@@ -1094,9 +1141,9 @@ asyncTest("asynchronous, execution_map, array, accumulator function",
       "finish",
       function()
       {
-        ok(this.last.result1==4,"correct result 1");
-        ok(this.last.result2==5,"correct result 2");
-        ok(this.last.result3==6,"correct result 3");
+        ok(this.accumulator.result1==4,"correct result 1");
+        ok(this.accumulator.result2==5,"correct result 2");
+        ok(this.accumulator.result3==6,"correct result 3");
         start();
       }
     )(
@@ -1295,18 +1342,18 @@ test("looping chain, synchronous",
       "loop",
       function()
       {
-        if(!this.execution_count)
-          this.execution_count = 1;
+        if(!this.accumulator.execution_count)
+          this.accumulator.execution_count = 1;
         else
-          this.execution_count++;
+          this.accumulator.execution_count++;
 
         ok(true,"executing number: " + this.execution_count);
 
-        if(this.execution_count && this.execution_count < 10)
+        if(this.accumulator.execution_count && this.accumulator.execution_count < 10)
         {
           this.next();
         }
-        else if(this.execution_count == 10)
+        else if(this.accumulator.execution_count == 10)
         {
           ok(true,"execution count equals 10");
         }
@@ -1331,18 +1378,18 @@ asyncTest("looping chain, asynchronous",
       "loop",
       function()
       {
-        if(!this.execution_count)
-          this.execution_count = 1;
+        if(!this.accumulator.execution_count)
+          this.accumulator.execution_count = 1;
         else
-          this.execution_count++;
+          this.accumulator.execution_count++;
 
-        ok(true,"executing number: " + this.execution_count);
+        ok(true,"executing number: " + this.accumulator.execution_count);
 
-        if(this.execution_count && this.execution_count < 10)
+        if(this.accumulator.execution_count && this.accumulator.execution_count < 10)
         {
           setTimeout(this.next,1);
         }
-        else if(this.execution_count == 10)
+        else if(this.accumulator.execution_count == 10)
         {
           ok(true,"execution count equals 10");
           start();

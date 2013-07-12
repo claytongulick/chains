@@ -70,11 +70,11 @@ o_o =  function()
       
     fn.start_execute = new Date().getTime(); //tag the start time for runtime performance evaluation
     var thys;
-    if(fn.thys)
+    /*if(fn.thys)
     {
       thys = fn.thys;
     }
-    else
+    else*/
     //create a 'this' context for the invoked function
     //this context contains the next and last members, which allow chaining.
     //the next member is a closure around o_o.next
@@ -110,8 +110,16 @@ o_o =  function()
     //at the front of the chain, instead of needing to call this.last.last.last.someValue, this.accumulator.someValue will always be present
     //if it's set anywhere in the chain
     thys.accumulator = last.accumulator || {}; 
-    fn.thys=thys; //cache the thys context for use in later calls to this function. this is primarily used for accumulator type functions
-    fn.apply(thys,[]);
+    //fn.thys=thys; //cache the thys context for use in later calls to this function. this is primarily used for accumulator type functions
+    try
+    {
+      fn.apply(thys,[]);
+    }
+    catch(ex)
+    {
+      if(self.error_handler)
+        self.error_handler(ex);
+    }
   }
 
   /**
