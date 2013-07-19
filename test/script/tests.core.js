@@ -1,6 +1,8 @@
 
 QUnit.module("no execution map")
 o_o.debug=true;
+
+
 /**
  * This tests execution of synchronous anonymous functions
  */
@@ -460,6 +462,28 @@ asyncTest("anonymous functions, asynchronous, no execution map, error",
   }
 );
 
+/**
+ * Test array of functions, synchronous and async, no execution map
+ */
+asyncTest("passing array of sync and async functions, no execution map",
+  function()
+  {
+    expect(4);
+
+    o_o([function1,function2,function3,function4])
+    (
+      function()
+      {
+        start();
+      }
+    )();
+
+    function function1() { ok(true, "function1 execute"); this.next(); this.accumulator.test="test"; }
+    function function2() { ok(true, "function2 execute"); setTimeout(this.next, 1); }
+    function function3() { ok(true, "function3 execute"); this.next(); }
+    function function4() { ok(this.accumulator.test=="test", "function4 execute, correct values"); this.next(); }
+  }
+);
 
 /**
  * This tests execution of asynchronous anonymous functions
@@ -763,6 +787,39 @@ asyncTest("aliased functions, asynchronous, execution map",
       }
     )
     ();
+  }
+);
+
+/**
+ * Test array of functions, synchronous and async, execution map
+ */
+asyncTest("passing array of sync and async functions, execution map",
+  function()
+  {
+    expect(4);
+
+    o_o([function1,function2,function3,function4])
+    (
+      "start",
+      function()
+      {
+        start();
+      }
+    )
+    (
+      {
+        'function1': 'function2',
+        'function2': 'function3',
+        'function3': 'function4',
+        'function4': 'start'
+      }
+    )
+    ();
+
+    function function1() {ok(true, "function1 execute"); this.accumulator.test="test"; this.next(); }
+    function function2() {ok(true, "function2 execute"); setTimeout(this.next, 1); }
+    function function3() { ok(true, "function3 execute"); this.next(); }
+    function function4() { ok(this.accumulator.test=="test", "function4 execute, correct values"); this.next(); }
   }
 );
 

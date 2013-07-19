@@ -227,60 +227,72 @@ o_o =  function()
   {
     var handled=false;
 
-    switch(typeof args[0])
+    //check to see if we got an array of functions passed in
+    if(Object.prototype.toString.call(args[0]) == "[object Array]")
     {
-      case 'function': //functions get queued
-        fn = args[0];
-        debug("Adding function: " + fn.name || "anonymous" + " to function queue.");
-        self.functions.push(fn);
-        break;
-      case 'object': //objects are interpreted as an execution map
-        debug("Checking plugins...");
-        //check to see if we have any plugins that will handle this call
-        if(o_o.plugins.length)
-        {
-          for(var i=0; i < o_o.plugins.length; i++)
-            if(o_o.plugins[i](self,args[0])) {handled = true;debug("found plugin"); break;}
-        }
-
-        if(handled) break; //the plugin handled this, move on
-        debug("Registering execution map");
-        self.execution_map = args[0];
-        break;
-      case 'string': //strings are assumed to be aliases
-        if(args.length==1) break; //a string alone is meaningless
-
-        if(args[0]=='error')
-        {
-          if(typeof args[1] == 'function')
-          {
-            self.error_handler=args[1]
-            break;
-          }
-        }
-
-        //check to see if we have any plugins that will handle this call
-        if(o_o.plugins.length && (typeof args[1] == 'object'))
-        {
-          for(var i=0; i < o_o.plugins.length; i++)
-            if(o_o.plugins[i](self,args[1],args[0])) {handled = true; break;}
-        }
-
-        if(handled) break; //the plugin handled this, move on
-
-        fn = args[1];
-        if(typeof fn == 'function') //if a function was passed in, queue it. ignore anything else
-        {
-          fn.alias=args[0];
-          debug("Registering aliased function: " + fn.alias);
-          self.functions.push(fn);
-        }
-        break;
-      default:
-        break;
+      var arr = args[0];
+      var i=0;
+      for(i=0;i<arr.length;i++)
+        self.functions.push(arr[i]);
     }
-  }
-  else
+    else
+    {
+      //this isn't an array, determine the type of the argument
+      switch(typeof args[0])
+      {
+        case 'function': //functions get queued
+          fn = args[0];
+          debug("Adding function: " + fn.name || "anonymous" + " to function queue.");
+          self.functions.push(fn);
+          break;
+        case 'object': //objects are interpreted as an execution map
+          debug("Checking plugins...");
+          //check to see if we have any plugins that will handle this call
+          if(o_o.plugins.length)
+          {
+            for(var i=0; i < o_o.plugins.length; i++)
+              if(o_o.plugins[i](self,args[0])) {handled = true;debug("found plugin"); break;}
+          }
+
+          if(handled) break; //the plugin handled this, move on
+          debug("Registering execution map");
+          self.execution_map = args[0];
+          break;
+        case 'string': //strings are assumed to be aliases
+          if(args.length==1) break; //a string alone is meaningless
+
+          if(args[0]=='error')
+          {
+            if(typeof args[1] == 'function')
+            {
+              self.error_handler=args[1]
+              break;
+            }
+          }
+
+          //check to see if we have any plugins that will handle this call
+          if(o_o.plugins.length && (typeof args[1] == 'object'))
+          {
+            for(var i=0; i < o_o.plugins.length; i++)
+              if(o_o.plugins[i](self,args[1],args[0])) {handled = true; break;}
+          }
+
+          if(handled) break; //the plugin handled this, move on
+
+          fn = args[1];
+          if(typeof fn == 'function') //if a function was passed in, queue it. ignore anything else
+          {
+            fn.alias=args[0];
+            debug("Registering aliased function: " + fn.alias);
+            self.functions.push(fn);
+          }
+          break;
+        default:
+          break;
+      } //end switch type
+    }
+  } //end if arguments.length > 0
+  else //no arguments were passed, just execute the chain
   {
     debug("Executing chain...");
     //no arguments were passed, this means it's time to execute starting at the head of the chain
