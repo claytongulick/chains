@@ -44,6 +44,37 @@ test("anonymous functions, synchronous, no execution map",
   }
 );
 
+test("error handler next call",
+function()
+{
+  expect(2);
+  o_o(
+    "raiseError",
+    function()
+    {
+      console.log("raising error...");
+      this.accumulator.test = "test";
+      this.doesNotExist.thisWillBeAnError = 1;
+    }
+  )(
+    "complete",
+    function()
+    {
+      console.log("complete");
+      ok(true,"complete executed");
+    }
+  )(
+    "error",
+    function()
+    {
+      console.log("error caught");
+      ok(this.accumulator.test=="test","context exists");
+      this.next("complete");
+    }
+  )();
+
+});
+
 test("nested error handler",function()
 {
   expect(1);
