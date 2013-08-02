@@ -51,9 +51,10 @@ o_o =  function()
   /**
    * Search for an error handler in the chain hierarchy
    */
-  function err(context,err)
+  function err(context,err, slf)
   {
-    var slf=self;
+    if(!slf)
+      slf=self;
     while(slf)
     {
       if(slf.error_handler)
@@ -64,7 +65,7 @@ o_o =  function()
         context.error = function(errorObj) 
         { 
           self.parent.current_error=errorObj; 
-          self.parent.err(this,errorObj);
+          err(this,errorObj,self.parent);
         }
         return slf.error_handler.apply(context,[err]);
       }
@@ -314,7 +315,7 @@ o_o =  function()
           {
             if (Object.prototype.toString.call(next_fn) == '[object Array]')
               for(i=0; i < next_fn.length; i++)
-                if(!self.err)
+                if(!self.current_error)
                   call_fn(next_fn[i],last);
           }
           else

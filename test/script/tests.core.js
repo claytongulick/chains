@@ -1134,7 +1134,7 @@ test("synchronous, execution_map, array, accumulator function",
 test("synchronous, execution_map, array, error",
   function()
   {
-    expect(17);
+    expect(9);
     o_o
     (
       "error",
