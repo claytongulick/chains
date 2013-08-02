@@ -44,7 +44,7 @@ o_o =  function()
     current_index: 0,
     execution_map: null,
     error_handler: null,
-    err: null,
+    current_error: null,
     __o_o__: true //sentinel flag to track current context. Indicates that we're in a chain
   });
 
@@ -57,7 +57,17 @@ o_o =  function()
     while(slf)
     {
       if(slf.error_handler)
+      {
+        //mutate the context to mofify the error handler.
+        //We do this because if this.error is called from within an error handler, we want to execute the parent
+        //err handler chain, not the current one
+        context.error = function(errorObj) 
+        { 
+          self.parent.current_error=errorObj; 
+          self.parent.err(this,errorObj);
+        }
         return slf.error_handler.apply(context,[err]);
+      }
       slf=self.parent;
     }
   }
@@ -111,7 +121,7 @@ o_o =  function()
       __parent: self,
       error: function(errorObj) 
       { 
-        self.err=errorObj; 
+        self.current_error = errorObj; 
         err(this,errorObj);
       },
 

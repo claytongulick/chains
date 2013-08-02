@@ -111,6 +111,42 @@ test("nested error handler",function()
   ();
 });
 
+test("error propagation from within error handler",
+  function()
+  {
+    expect(1);
+
+    var subChain = o_o(
+      "subStart",
+      function()
+      {
+        this.error("error");
+      }
+    )(
+      "error",
+      function(err)
+      {
+        this.error(err);
+      }
+    );
+
+    var topChain = o_o(
+      "topStart",
+      function()
+      {
+        this.next();
+      }
+    )(
+      subChain
+    )(
+      "error",
+      function(err)
+      {
+        ok(err="error","Top error handler called");
+      }
+    )();
+  });
+
 test("anonymous functions, synchronous, error",
   function()
   {
@@ -1098,7 +1134,7 @@ test("synchronous, execution_map, array, accumulator function",
 test("synchronous, execution_map, array, error",
   function()
   {
-    expect(9);
+    expect(17);
     o_o
     (
       "error",
