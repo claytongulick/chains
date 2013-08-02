@@ -147,6 +147,62 @@ test("error propagation from within error handler",
     )();
   });
 
+test("error exception propagation from within error handler",
+  function()
+  {
+    expect(3);
+
+    var subsubChain = o_o(
+      "subsubStart",
+      function()
+      {
+        undefinedFunction(); //raise exception
+        this.next();
+      }
+    )(
+      "error",
+      function(err)
+      {
+        ok(true, "subsubChain error handler: " + err);
+        this.error(err);
+      }
+    );
+
+    var subChain = o_o(
+      "subStart",
+      function()
+      {
+        this.next();
+      }
+    )(
+      subsubChain
+    )(
+      "error",
+      function(err)
+      {
+        ok(true,"subChain error handler: " + err);
+        this.error(err);
+      }
+    );
+
+    var topChain = o_o(
+      "topStart",
+      function()
+      {
+        this.next();
+      }
+    )(
+      subChain
+    )(
+      "error",
+      function(err)
+      {
+        ok(true,"Top error handler called: " + err);
+        this.error(err);
+      }
+    )();
+  });
+
 test("anonymous functions, synchronous, error",
   function()
   {

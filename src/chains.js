@@ -50,8 +50,13 @@ o_o =  function()
 
   /**
    * Search for an error handler in the chain hierarchy
+   * Currently, we're explicitly searching back up the 
+   * recursion/closure stack for an error handler, and mutating
+   * the context for "this" inside of the error handler to allow passing
+   * up the chain. This may need to be rethought, since just raising/throwing
+   * the exception might accomplish the same thing but better
    */
-  function err(context,err, slf)
+  function err(context,errObj, slf)
   {
     if(!slf)
       slf=self;
@@ -64,12 +69,15 @@ o_o =  function()
         //err handler chain, not the current one
         context.error = function(errorObj) 
         { 
-          self.parent.current_error=errorObj; 
-          err(this,errorObj,self.parent);
+          if(slf.parent)
+          {
+            slf.parent.current_error=errorObj; 
+            err(this,errorObj,slf.parent);
+          }
         }
-        return slf.error_handler.apply(context,[err]);
+        return slf.error_handler.apply(context,[errObj]);
       }
-      slf=self.parent;
+      slf=slf.parent;
     }
   }
 
