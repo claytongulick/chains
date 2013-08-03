@@ -1579,45 +1579,42 @@ test("skipping order, sync",
     )
     ();
   });
-/*
-
 asyncTest("skipping order, async",
   function()
   {
-    expect(2);
-    var step1 = o_o(
+    expect(1);
+    var step1 = 
       function()
       {
+        var thys=this;
         this.accumulator.lastValue=1;
-        //next("step3");
-        next();
-      });
-    var step2 = o_o(
+        setTimeout(function() {thys.next("step3")},1);
+        //next();
+      }
+    var step2 = 
       function()
       {
-        ok(this.accumulator.lastValue=3,"last val is 3");
-        start();
+        ok(this.accumulator.lastValue==3,"last val is 3");
+        this.accumulator.lastValue=2;
         this.next();
-      });
-    var step3 = o_o(
+      }
+    var step3 = 
       function()
       {
-        ok(this.accumulator.lastValue=1,"last val is 1");
+        ok(this.accumulator.lastValue==1,"last val is 1");
         this.accumulator.lastValue=3;
         //next("step2");
-        next();
-      });
-
-    o_o("step1", step1 )("step2", step2 )("step3", step3 )
-    (
-      {
-        "step1":"step2",
-        "step2":"step3"
+        this.next();
       }
-    )
-    ();
+
+    o_o
+      ("step1", step1 )
+      ("step2", step2 )
+      ("step3", step3 )
+      ("finish", start )
+      ();
   });
-*/
+
 
 /**
  * Tests synchronous execution of a looping chain, maintaining 'this' context

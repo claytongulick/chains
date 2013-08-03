@@ -307,7 +307,11 @@ o_o =  function()
       for(var i=0;i<self.functions.length;i++)
       {
         if(self.functions[i].name==nextFnName || self.functions[i].alias == nextFnName)
+        {
+          //update the index into the array queue
+          self.current_index = i;
           return call_fn(nextFnName,last);
+        }
       }
       //apply self.next in hopes that we can skip to a parent chain
       if(self.next)
