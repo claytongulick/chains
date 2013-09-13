@@ -1975,6 +1975,43 @@ asyncTest("nested simple named chains,async, execution map",
   }
 );
 
+//test repeated calls of instantiated subchain
+test("test repeated calls of subchain",
+  function()
+  {
+    debugger;
+    expect(4);
+    var defined = o_o(
+      "defined chain start",
+      function()
+      {
+        debugger;
+        this.next();
+      }
+      )(
+      "defined chain second",
+      function()
+      {
+        debugger;
+        ok(true,"second called");
+      }
+    ) ;
+
+    for(var i=0;i<4; i++)
+    {
+      o_o(
+          "start main",
+          function()
+          {
+            this.next();
+          }
+        )(
+          "call defined",
+          defined
+        )();
+    }
+  });
+
 
 
 

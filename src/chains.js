@@ -439,7 +439,10 @@ o_o =  function()
         break;
       }
     else
+    {
+      self.current_index=0;
       call_fn(self.functions[0],self.last||self);
+    }
   }
 
   //this allows chaining of calls, while preserving context in the 'self' variable
