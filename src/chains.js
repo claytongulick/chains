@@ -36,15 +36,18 @@ o_o =  function()
   var args = arguments;
   var fn;
 
-  //if this==window this is an initial invocation, create the self context that will be passed to chained calls
-  //if this!=window, this is a chained call, and 'self' has been applied as 'this', so get a reference to it
- var self = (this.__o_o__ ? this :  
+  //if this==window this is an initial invocation, create the context that will be passed to chained calls
+  //if this!=window, this is a chained call, and a parent context has been applied as 'this', so get a reference to it
+ var context = (this.__o_o__ ? this :  
  {
-    functions: [],
-    current_index: 0,
-    execution_map: null,
-    error_handler: null,
-    current_error: null,
+    functions: [],  //the array of functions to be executed in the current chain
+    current_index: 0, //the current index into the function queue that is used for sequential excution of non-execution map chains
+    execution_map: null, //the execution map that defines the flow of execution through the links in the chain
+    error_handler: null, //the error handler assigned to the current chain
+    current_error: null, //a holder for the last error that occurred in the current chain
+    parentChainNext: null, //the next function from the parent chain, if any
+    parentChainLast: null, //the last function from the parent chain, if any
+    alias: null, //if this chain is a subchain, what, if any, alias was used to refer to the subchain
     __o_o__: true //sentinel flag to track current context. Indicates that we're in a chain
   });
 
@@ -56,28 +59,28 @@ o_o =  function()
    * up the chain. This may need to be rethought, since just raising/throwing
    * the exception might accomplish the same thing but better
    */
-  function err(context,errObj, slf)
+  function err(function_context,errObj, ctx)
   {
-    if(!slf)
-      slf=self;
-    while(slf)
+    if(!ctx)
+      ctx=context;
+    while(ctx)
     {
-      if(slf.error_handler)
+      if(ctx.error_handler)
       {
         //mutate the context to mofify the error handler.
         //We do this because if this.error is called from within an error handler, we want to execute the parent
         //err handler chain, not the current one
-        context.error = function(errorObj) 
+        function_context.error = function(errorObj) 
         { 
-          if(slf.parent)
+          if(ctx.parent)
           {
-            slf.parent.current_error=errorObj; 
-            err(this,errorObj,slf.parent);
+            ctx.parent.current_error=errorObj; 
+            err(this,errorObj,ctx.parent);
           }
         }
-        return slf.error_handler.apply(context,[errObj]);
+        return ctx.error_handler.apply(function_context,[errObj]);
       }
-      slf=slf.parent;
+      ctx=ctx.parent;
     }
   }
 
@@ -97,17 +100,17 @@ o_o =  function()
     else
     {
       //find the function with the correct name
-      for(var i=0;i<self.functions.length;i++)
+      for(var i=0;i < context.functions.length; i++)
       {
-        if(self.functions[i].alias && self.functions[i].alias==name)
+        if(context.functions[i].alias && context.functions[i].alias==name)
         {
-          fn = self.functions[i]; 
+          fn = context.functions[i]; 
           break;
         }
 
-        if(self.functions[i].name && self.functions[i].name==name)
+        if(context.functions[i].name && context.functions[i].name==name)
         {
-          fn = self.functions[i]; 
+          fn = context.functions[i]; 
           break;
         }
       }
@@ -126,11 +129,14 @@ o_o =  function()
       //function in a nested chain executes, it needs to be able to "pretend"
       //that it was the actual aliased chain function so that the execution map
       //continues to flow. i.e, o_o("alias",o_o( ... , ... , iNeedToCarryTheAlias)) ("next",...);
+      //in this situation, fn *is* the subchain, so we want to pass the alias into the "this" context so it will
+      //be picked up and assigned to context.alias when fn is executed. When the last function in the subchain has executed,
+      //the alias of the subchain can then be retrieved from the context 
       __alias: fn.alias || fn.name,
-      __parent: self,
+      __parent: context,
       error: function(errorObj) 
       { 
-        self.current_error = errorObj; 
+        context.current_error = errorObj; 
         err(this,errorObj);
       },
 
@@ -142,7 +148,7 @@ o_o =  function()
           this.__last.end_execute = new Date().getTime();
           debug("Function chain: " + this.__alias + " complete. End execution time: " + this.__last.end_execute + " total time: " + (this.__last.end_execute - this.__last.start_execute));
           this.__last.alias=this.__alias;
-          next(this.__last,nextFnName)
+          iterate(this.__last,nextFnName)
         }
         else
         {
@@ -151,7 +157,7 @@ o_o =  function()
           //copy the 'this' context and preserve it once execution context has faded
           for(key in thys)
             fn[key] = thys[key];
-          next(fn,nextFnName);
+          iterate(fn,nextFnName);
         }
       }
     };
@@ -190,11 +196,11 @@ o_o =  function()
     else
     {
       //find the array with the correct name
-      for(var i=0;i<self.functions.length;i++)
+      for(var i=0;i<context.functions.length;i++)
       {
-        if(self.functions[i].alias && self.functions[i].alias==name)
+        if(context.functions[i].alias && context.functions[i].alias==name)
         {
-          arr = self.functions[i]; 
+          arr = context.functions[i]; 
           break;
         }
       }
@@ -220,7 +226,7 @@ o_o =  function()
           context.__last.end_execute = new Date().getTime();
           debug("Function chain: " + context.__alias + " complete. End execution time: " + context.__last.end_execute + " total time: " + (context.__last.end_execute - context.__last.start_execute));
           context.__last.alias=context.__alias;
-          next(context.__last)
+          iterate(context.__last)
         }
         else
         {
@@ -229,7 +235,7 @@ o_o =  function()
           //copy the 'context' context and preserve it once execution context has faded
           for(key in thys)
             fn[key] = thys[key];
-          next(fn);
+          iterate(fn);
         }
       }
     }
@@ -249,10 +255,11 @@ o_o =  function()
         //pass the name or alias into the 'this' context. This is useful for
         //execution maps of aliased nested chains
         __alias: fn.name,
-        __parent: self,
+        __parent: context,
         error: function(errorObj) 
         { 
-          self.err=errorObj; 
+          context.err=errorObj; 
+
           err(errorObj);
         },
 
@@ -281,7 +288,7 @@ o_o =  function()
   }*/
 
   /**
-   * This calls the next function.
+   * This iterates to the next function.
    *
    * It operates differently depending on whether an execution map has been passed in.
    *
@@ -294,7 +301,7 @@ o_o =  function()
    *
    * In many cases, the chained function will itself be a new execution chain
    */
-  function next(last,nextFnName)
+  function iterate(last,nextFnName)
   {
     var next_fn=null;
     var i=0;
@@ -303,31 +310,31 @@ o_o =  function()
     if(nextFnName) 
     {
       debug("Skipping to function: " + nextFnName);
-      //check to see if the function is in the list of self.functions, if not, it could be in a parent chain, so apply self.next
-      for(var i=0;i<self.functions.length;i++)
+      //check to see if the function is in the list of context.functions, if not, it could be in a parent chain, so apply context.parentChainNext
+      for(var i=0;i<context.functions.length;i++)
       {
-        if(self.functions[i].name==nextFnName || self.functions[i].alias == nextFnName)
+        if(context.functions[i].name==nextFnName || context.functions[i].alias == nextFnName)
         {
           //update the index into the array queue
-          self.current_index = i;
+          context.current_index = i;
           return call_fn(nextFnName,last);
         }
       }
-      //apply self.next in hopes that we can skip to a parent chain
-      if(self.next)
-        self.next.apply({__last:last,__alias:self.alias},[nextFnName]);
+      //apply context.parentChainNext in hopes that we can skip to a parent chain
+      if(context.parentChainNext)
+        context.parentChainNext.apply({__last:last,__alias:context.alias},[nextFnName]);
     }
-    else if(self.execution_map)
+    else if(context.execution_map)
     {
-      for(var key in self.execution_map)
+      for(var key in context.execution_map)
         if(key==lastFnName)
         {
-          next_fn = self.execution_map[key];
+          next_fn = context.execution_map[key];
           if(typeof next_fn == 'object')
           {
             if (Object.prototype.toString.call(next_fn) == '[object Array]')
               for(i=0; i < next_fn.length; i++)
-                if(!self.current_error)
+                if(!context.current_error)
                   call_fn(next_fn[i],last);
           }
           else
@@ -336,24 +343,24 @@ o_o =  function()
         }
       if(!next_fn)
       {
-        if(self.next)
-          self.next.apply({__last:last,__alias:self.alias},[nextFnName]);
+        if(context.parentChainNext)
+          context.parentChainNext.apply({__last:last,__alias:context.alias},[nextFnName]);
       }
     }
     else
     {
-      self.current_index++;
-      if(self.current_index >= self.functions.length)
+      context.current_index++;
+      if(context.current_index >= context.functions.length)
       {
-        if(self.next)
+        if(context.parentChainNext)
         {
-          self.next.apply({__last:last,__alias:self.alias},[nextFnName]); //if we're a nested chain call next()
+          context.parentChainNext.apply({__last:last,__alias:context.alias},[nextFnName]); //if we're a nested chain call next()
         }
         return;
       }
-      call_fn(self.functions[self.current_index],last);
+      call_fn(context.functions[context.current_index],last);
     }
-  } //end next()
+  } //end iterate()
   
   /**
    * Determine how o_o was called, and queue functions appropriately
@@ -368,7 +375,7 @@ o_o =  function()
       var arr = args[0];
       var i=0;
       for(i=0;i<arr.length;i++)
-        self.functions.push(arr[i]);
+        context.functions.push(arr[i]);
     }
     else
     {
@@ -378,7 +385,7 @@ o_o =  function()
         case 'function': //functions get queued
           fn = args[0];
           debug("Adding function: " + fn.name || "anonymous" + " to function queue.");
-          self.functions.push(fn);
+          context.functions.push(fn);
           break;
         case 'object': //objects are interpreted as an execution map
           debug("Checking plugins...");
@@ -386,12 +393,12 @@ o_o =  function()
           if(o_o.plugins.length)
           {
             for(var i=0; i < o_o.plugins.length; i++)
-              if(o_o.plugins[i](self,args[0])) {handled = true;debug("found plugin"); break;}
+              if(o_o.plugins[i](context,args[0])) {handled = true;debug("found plugin"); break;}
           }
 
           if(handled) break; //the plugin handled this, move on
           debug("Registering execution map");
-          self.execution_map = args[0];
+          context.execution_map = args[0];
           break;
         case 'string': //strings are assumed to be aliases
           if(args.length==1) break; //a string alone is meaningless
@@ -400,7 +407,7 @@ o_o =  function()
           {
             if(typeof args[1] == 'function')
             {
-              self.error_handler=args[1]
+              context.error_handler=args[1]
               break;
             }
           }
@@ -409,7 +416,7 @@ o_o =  function()
           if(o_o.plugins.length && (typeof args[1] == 'object'))
           {
             for(var i=0; i < o_o.plugins.length; i++)
-              if(o_o.plugins[i](self,args[1],args[0])) {handled = true; break;}
+              if(o_o.plugins[i](context,args[1],args[0])) {handled = true; break;}
           }
 
           if(handled) break; //the plugin handled this, move on
@@ -419,7 +426,7 @@ o_o =  function()
           {
             fn.alias=args[0];
             debug("Registering aliased function: " + fn.alias);
-            self.functions.push(fn);
+            context.functions.push(fn);
           }
           break;
         default:
@@ -431,21 +438,21 @@ o_o =  function()
   {
     debug("Executing chain...");
     //no arguments were passed, this means it's time to execute starting at the head of the chain
-    if(self.execution_map)
-      for(key in self.execution_map)
+    if(context.execution_map)
+      for(key in context.execution_map)
       {
         //get the first key, then break
-        call_fn(key,self.last||self);
+        call_fn(key,context.last||context);
         break;
       }
     else
     {
-      self.current_index=0;
-      call_fn(self.functions[0],self.last||self);
+      context.current_index=0;
+      call_fn(context.functions[0],context.parentChainLast||context);
     }
   }
 
-  //this allows chaining of calls, while preserving context in the 'self' variable
+  //this allows chaining of calls, while preserving context in the 'context' variable
   //this is confusing, but it's helpful to remember that the below function is the
   //thing that actually gets applied with the above "thys" construct in call_fn or call_arr.
   //Therefore, if "this" has a "next" function, we know that this is being invoked from a
@@ -454,22 +461,22 @@ o_o =  function()
   //the next() from the parent. We need to know last, so that this.last navigates up the chain,
   //we need to know the alias, because if this is a function in a nested chain, the nested chain
   //could have been aliased like o_o("someAlias",o_o(...)), and we need to carry that through
-  //and __parent is a reference to the self object of the current chain
+  //and __parent is a reference to the context object of the current chain
   return function() 
           { 
             //handle nested chains, carry assignment of next() and 'last' through to 'this' context of tail and head functions
             //also grab the __alias in case we're an aliased nested chain
             if(this.next)
-              self.next=this.next;
+              context.parentChainNext=this.next;
             if(this.last)
-              self.last=this.last;
+              context.parentChainLast=this.last;
             if(this.__alias)
-              self.alias=this.__alias;
+              context.alias=this.__alias;
             if(this.__parent)
-              self.parent=this.__parent;
+              context.parent=this.__parent;
 
-            //closure around self
-            return o_o.apply(self,arguments); 
+            //closure around context 
+            return o_o.apply(context,arguments); 
           };
 }
 

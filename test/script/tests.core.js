@@ -1979,20 +1979,17 @@ asyncTest("nested simple named chains,async, execution map",
 test("test repeated calls of subchain",
   function()
   {
-    debugger;
     expect(4);
     var defined = o_o(
       "defined chain start",
       function()
       {
-        debugger;
         this.next();
       }
       )(
       "defined chain second",
       function()
       {
-        debugger;
         ok(true,"second called");
       }
     ) ;
