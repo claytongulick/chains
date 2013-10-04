@@ -679,6 +679,75 @@ asyncTest("passing array of sync and async functions and subchains, no execution
 );
 
 /**
+ * Test subchain tree, synchronous and async, no execution map
+ */
+asyncTest("passing array of sync and async subchain trees, no execution map",
+  function()
+  {
+    expect(10);
+
+
+    function function1() { ok(true, "function1 execute"); this.test1="test1"; this.accumulator.test1="test1"; this.next(); }
+    function function2() { ok(true, "function2 execute"); this.test2="test2"; this.accumulator.test2="test2"; setTimeout(this.next, 1); }
+
+    var subchain2 = o_o(
+        function()
+        {
+          this.accumulator.subchain2="subchain2";
+          this.next();
+        }
+      )(
+        function()
+        {
+          this.subchain2="subchain2";
+          this.next();
+        }
+      );
+    var subchain1 = o_o(
+        function()
+        {
+          this.accumulator.subchain1="subchain1";
+          setTimeout(this.next,1);
+        }
+      )
+      (subchain2)
+      (
+        function()
+        {
+          this.subchain1="subchain1";
+          setTimeout(this.next,1);
+        }
+      );
+
+    var chain1 = o_o(subchain1)
+      (
+        function()
+        {
+          this.chain1="chain1";
+          this.accumulator.chain1 = "chain1";
+          setTimeout(this.next,1);
+        }
+      );
+
+    o_o([function1,function2,chain1])
+    (
+      function()
+      {
+        ok(this.accumulator.test1=="test1", "correct value 1"); 
+        ok(this.accumulator.test2=="test2", "correct value 2");
+        ok(this.accumulator.chain1=="chain1", "correct accumulator chain1");
+        ok(this.accumulator.subchain1=="subchain1", "correct accumulator subchain1");
+        ok(this.accumulator.subchain2=="subchain2", "correct accumulator subchain2");
+        ok(this.last.test1=="test1","correct last 1");
+        ok(this.last.test2=="test2","correct last 2");
+        ok(this.last.chain1=="chain1","correct last chain1");
+        start();
+      }
+    )();
+  }
+);
+
+/**
  * This tests execution of asynchronous anonymous functions
  */
 asyncTest("aliased functions, asynchronous, no execution map",
