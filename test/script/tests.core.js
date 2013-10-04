@@ -591,20 +591,28 @@ asyncTest("anonymous functions, asynchronous, no execution map, error",
 asyncTest("passing array of sync and async functions, no execution map",
   function()
   {
-    expect(4);
+    expect(12);
 
     o_o([function1,function2,function3,function4])
     (
       function()
       {
+        ok(this.accumulator.test1=="test1", "correct value 1"); 
+        ok(this.accumulator.test2=="test2", "correct value 2");
+        ok(this.accumulator.test3=="test3", "correct value 3");
+        ok(this.accumulator.test4=="test4", "correct value 4");
+        ok(this.last.test1=="test1","correct last 1");
+        ok(this.last.test2=="test2","correct last 2");
+        ok(this.last.test3=="test3","correct last 3");
+        ok(this.last.test4=="test4","correct last 4");
         start();
       }
     )();
 
-    function function1() { ok(true, "function1 execute"); this.next(); this.accumulator.test="test"; }
-    function function2() { ok(true, "function2 execute"); setTimeout(this.next, 1); }
-    function function3() { ok(true, "function3 execute"); this.next(); }
-    function function4() { ok(this.accumulator.test=="test", "function4 execute, correct values"); this.next(); }
+    function function1() { ok(true, "function1 execute"); this.test1="test1"; this.accumulator.test1="test1"; this.next(); }
+    function function2() { ok(true, "function2 execute"); this.test2="test2"; this.accumulator.test2="test2"; setTimeout(this.next, 1); }
+    function function3() { ok(true, "function3 execute"); this.test3="test3"; this.accumulator.test3="test3"; this.next(); }
+    function function4() { ok(true, "function4 execute"); this.test4="test4"; this.accumulator.test4="test4"; this.next();}
   }
 );
 
@@ -919,30 +927,42 @@ asyncTest("aliased functions, asynchronous, execution map",
 asyncTest("passing array of sync and async functions, execution map",
   function()
   {
-    expect(4);
+    expect(12);
 
-    o_o([function1,function2,function3,function4])
-    (
-      "start",
+    o_o(
+      "first",
       function()
       {
+        setTimeout(this.next,1);
+      }
+    )("second",[function1,function2,function3,function4])
+    ( 
+      "third",
+      function()
+      {
+        ok(this.accumulator.test1=="test1", "correct value 1"); 
+        ok(this.accumulator.test2=="test2", "correct value 2");
+        ok(this.accumulator.test3=="test3", "correct value 3");
+        ok(this.accumulator.test4=="test4", "correct value 4");
+        ok(this.last.test1=="test1","correct last 1");
+        ok(this.last.test2=="test2","correct last 2");
+        ok(this.last.test3=="test3","correct last 3");
+        ok(this.last.test4=="test4","correct last 4");
         start();
       }
-    )
+    )("start",start)
     (
       {
-        'function1': 'function2',
-        'function2': 'function3',
-        'function3': 'function4',
-        'function4': 'start'
+        'first': 'second',
+        'second': 'third',
+        'third': 'start'
       }
-    )
-    ();
+    )();
 
-    function function1() {ok(true, "function1 execute"); this.accumulator.test="test"; this.next(); }
-    function function2() {ok(true, "function2 execute"); setTimeout(this.next, 1); }
-    function function3() { ok(true, "function3 execute"); this.next(); }
-    function function4() { ok(this.accumulator.test=="test", "function4 execute, correct values"); this.next(); }
+    function function1() { ok(true, "function1 execute"); this.test1="test1"; this.accumulator.test1="test1"; this.next(); }
+    function function2() { ok(true, "function2 execute"); this.test2="test2"; this.accumulator.test2="test2"; setTimeout(this.next, 1); }
+    function function3() { ok(true, "function3 execute"); this.test3="test3"; this.accumulator.test3="test3"; this.next(); }
+    function function4() { ok(true, "function4 execute"); this.test4="test4"; this.accumulator.test4="test4"; this.next();}
   }
 );
 
@@ -2007,6 +2027,64 @@ test("test repeated calls of subchain",
           defined
         )();
     }
+  });
+
+asyncTest("async subchain",
+  function()
+  {
+    expect(9);
+
+    var subsubchain = o_o(
+      function()
+      {
+        this.test4 = "test4";
+        this.accumulator.test4="test4";
+        setTimeout(this.next,1);
+      }
+    );
+
+    var subchain = o_o(
+      function()
+      {
+        this.test2 = "test2";
+        this.accumulator.test2 = "test2";
+        setTimeout(this.next,1);
+      }
+    )(
+      function()
+      {
+        this.test3 = "test3";
+        this.accumulator.test3 = "test3";
+        setTimeout(this.next,1);
+      }
+    )("subsubchain",subsubchain);
+
+
+    o_o(
+      function()
+      {
+        ok("start");
+        this.test1 = "test1";
+        this.accumulator.test1 = "test1";
+        setTimeout(this.next,1);
+      }
+    )(
+      "subchain", subchain
+    )(
+      function()
+      {
+
+        ok(this.last.test4=="test4","last val");
+        ok(this.last.last.test3=="test3","last val");
+        ok(this.last.last.last.test2=="test2","last last val");
+        ok(this.last.last.last.last.test1=="test1","last last last val");
+        ok(this.accumulator.test1=="test1","accumulator ok");
+        ok(this.accumulator.test2=="test2","accumulator ok");
+        ok(this.accumulator.test3=="test3","accumulator ok");
+        ok(this.accumulator.test4=="test4","accumulator ok");
+        start();
+      }
+    )();
   });
 
 

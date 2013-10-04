@@ -84,38 +84,52 @@ o_o =  function()
     }
   }
 
+  /**
+   * Small utility function to dispatch the call to the correct handler.
+   * If obj is an array, invoke call_arr, otherwise invoke call_fn
+   */
+  function dispatch(obj,last)
+  {
+    if(Object.prototype.toString.call(obj) == '[object Array]')
+      return call_arr(obj,last);
+
+    if(typeof obj == 'function')
+      return call_fn(obj,last);
+
+    var fn;
+
+    //find the function with the correct name
+    for(var i=0;i < context.functions.length; i++)
+    {
+      if(context.functions[i].alias && context.functions[i].alias==obj)
+      {
+        fn = context.functions[i]; 
+        break;
+      }
+
+      if(context.functions[i].name && context.functions[i].name==obj)
+      {
+        fn = context.functions[i]; 
+        break;
+      }
+    }
+
+    if(Object.prototype.toString.call(fn) == '[object Array]')
+      return call_arr(fn,last);
+
+    if(typeof fn == 'function')
+      return call_fn(fn,last);
+
+  }
+
 
   /**
    * Utility to call the fn with the given name.
    * This just spins through the functions[] until it finds a function with the given name and executes it
    * If name is a function, it will be executed directly
    */
-  function call_fn(name,last)
+  function call_fn(fn,last)
   {
-    var fn;
-    if(typeof name=='function')
-    {
-      fn=name;
-    }
-    else
-    {
-      //find the function with the correct name
-      for(var i=0;i < context.functions.length; i++)
-      {
-        if(context.functions[i].alias && context.functions[i].alias==name)
-        {
-          fn = context.functions[i]; 
-          break;
-        }
-
-        if(context.functions[i].name && context.functions[i].name==name)
-        {
-          fn = context.functions[i]; 
-          break;
-        }
-      }
-    }
-      
     fn.start_execute = new Date().getTime(); //tag the start time for runtime performance evaluation
     debug("Executing function: " + (fn.name || fn.alias || "anonymous") + " start time: " + fn.start_execute);
     var thys;
@@ -143,12 +157,12 @@ o_o =  function()
       next: function(nextFnName)
       {
         //check to see if we've been invoked from a different chain, this supports nesting chains
-        if(this.__last) //check to see if 'last' is being passed up from a nested chain
+        if(this.childChainLast) //check to see if 'last' is being passed up from a nested chain
         {
-          this.__last.end_execute = new Date().getTime();
-          debug("Function chain: " + this.__alias + " complete. End execution time: " + this.__last.end_execute + " total time: " + (this.__last.end_execute - this.__last.start_execute));
-          this.__last.alias=this.__alias;
-          iterate(this.__last,nextFnName)
+          this.childChainLast.end_execute = new Date().getTime();
+          debug("Function chain: " + this.__alias + " complete. End execution time: " + this.childChainLast.end_execute + " total time: " + (this.childChainLast.end_execute - this.childChainLast.start_execute));
+          this.childChainLast.alias=this.__alias;
+          iterate(this.childChainLast,nextFnName)
         }
         else
         {
@@ -159,14 +173,14 @@ o_o =  function()
             fn[key] = thys[key];
           iterate(fn,nextFnName);
         }
-      }
+      },
+      last: last,
+      //create a forward accumulating object for carrying values forward into each call. This can be used to always keep certain values
+      //at the front of the chain, instead of needing to call this.last.last.last.someValue, this.accumulator.someValue will always be present
+      //if it's set anywhere in the chain
+      accumulator: last.accumulator || {}
     };
-    thys.last=last; //set or update the 'last' member
-    //create a forward accumulating object for carrying values forward into each call. This can be used to always keep certain values
-    //at the front of the chain, instead of needing to call this.last.last.last.someValue, this.accumulator.someValue will always be present
-    //if it's set anywhere in the chain
-    thys.accumulator = last.accumulator || {}; 
-    //fn.thys=thys; //cache the thys context for use in later calls to this function. this is primarily used for accumulator type functions
+
     try
     {
       fn.apply(thys,[]);
@@ -186,57 +200,44 @@ o_o =  function()
    * This needs some serious thought on how it will work before it's ready
    * for prime time. commented out for now
    */
-  /*function call_arr(name, last)
+  function call_arr(arr, last)
   {
-    var arr;
-    if(Object.prototype.toString.call(name) =='[object Array]')
-    {
-      arr=name;
-    }
-    else
-    {
-      //find the array with the correct name
-      for(var i=0;i<context.functions.length;i++)
-      {
-        if(context.functions[i].alias && context.functions[i].alias==name)
-        {
-          arr = context.functions[i]; 
-          break;
-        }
-      }
-    }
 
     arr.start_execute = new Date().getTime(); //tag the start time for runtime performance evaluation
-    debug("Executing parallel array of " + arr.length + " functions: " + (arr.alias || "anonymous") + " start time: " + fn.start_execute);
+    debug("Executing parallel array of " + arr.length + " functions: " + (arr.alias || "anonymous") + " start time: " + arr.start_execute);
 
     var functionsLeft = arr.length;
-    //this array is going to be the this.last for future calls.
+    //this object is going to be the this.last for future calls.
     //it needs to have all the stuff a normal function would though, so that it 
     //works in execution maps and all that jazz
-    var arrayLast = new Array(arr.length);
-    function paralellFunctionComplete(index,context,fn)
+    var pseudoLast = {};
+    var accumulator = last.accumulator || {};
+    var contexts = [];
+    function paralellFunctionComplete()
     {
       functionsLeft--;
-      arrayLast[index]=context;
+
+      //when all functions have executed, continue on
       if(!functionsLeft)
       {
-        //check to see if we've been invoked from a different chain, context supports nesting chains
-        if(context.__last) //check to see if 'last' is being passed up from a nested chain
+        var j=0;
+        //copy all the "this" values from the contexts into a pseudoLast object, this will be an aggregate
+        //of all the "this" values from all the parallel functions
+        for(j=0;j<contexts.length;j++)
         {
-          context.__last.end_execute = new Date().getTime();
-          debug("Function chain: " + context.__alias + " complete. End execution time: " + context.__last.end_execute + " total time: " + (context.__last.end_execute - context.__last.start_execute));
-          context.__last.alias=context.__alias;
-          iterate(context.__last)
+          for(key in contexts[j])
+            pseudoLast[key] = contexts[j][key];
+
+          //also, aggregate all the accumulator values from all the functions
+          for(key in contexts[j].accumulator)
+            accumulator[key] = contexts[j].accumulator[key];
         }
-        else
-        {
-          fn.end_execute = new Date().getTime();
-          debug("Function: " + (fn.alias || fn.name || "anonymous") + " complete. End execution time: " + fn.end_execute + " total time: " + (fn.end_execute - fn.start_execute));
-          //copy the 'context' context and preserve it once execution context has faded
-          for(key in thys)
-            fn[key] = thys[key];
-          iterate(fn);
-        }
+
+        pseudoLast.end_execute = new Date().getTime();
+        debug("Function: " + (arr.alias || arr.name || "array") + " complete. End execution time: " + pseudoLast.end_execute + " total time: " + (pseudoLast.end_execute - arr.start_execute));
+        pseudoLast.alias = arr.alias;
+        pseudoLast.accumulator = accumulator;
+        iterate(pseudoLast);
       }
     }
 
@@ -254,26 +255,26 @@ o_o =  function()
       thys = {
         //pass the name or alias into the 'this' context. This is useful for
         //execution maps of aliased nested chains
-        __alias: fn.name,
+        __alias: arr.alias,
         __parent: context,
         error: function(errorObj) 
         { 
           context.err=errorObj; 
-
           err(errorObj);
         },
 
         next: function()
         {
-          parallelFunctionComplete(i,this,fn);
-        }
+          paralellFunctionComplete();
+        },
+        last: last,
+        //create a forward accumulating object for carrying values forward into each call. This can be used to always keep certain values
+        //at the front of the chain, instead of needing to call this.last.last.last.someValue, this.accumulator.someValue will always be present
+        //if it's set anywhere in the chain
+        accumulator: last.accumulator || {}
       };
-      thys.last=last; //set or update the 'last' member
-      //create a forward accumulating object for carrying values forward into each call. This can be used to always keep certain values
-      //at the front of the chain, instead of needing to call this.last.last.last.someValue, this.accumulator.someValue will always be present
-      //if it's set anywhere in the chain
-      thys.accumulator = last.accumulator || {}; 
-      //fn.thys=thys; //cache the thys context for use in later calls to this function. this is primarily used for accumulator type functions
+      contexts[i]=thys;
+
       try
       {
         fn.apply(thys,[]);
@@ -285,7 +286,7 @@ o_o =  function()
       }
     }
 
-  }*/
+  }
 
   /**
    * This iterates to the next function.
@@ -307,7 +308,7 @@ o_o =  function()
     var i=0;
     var lastFnName = nextFnName || last.alias || last.name;
 
-    if(nextFnName) 
+    if(nextFnName) //we're being called with an explicit 'skip to chain' name
     {
       debug("Skipping to function: " + nextFnName);
       //check to see if the function is in the list of context.functions, if not, it could be in a parent chain, so apply context.parentChainNext
@@ -317,14 +318,14 @@ o_o =  function()
         {
           //update the index into the array queue
           context.current_index = i;
-          return call_fn(nextFnName,last);
+          return dispatch(nextFnName,last);
         }
       }
       //apply context.parentChainNext in hopes that we can skip to a parent chain
       if(context.parentChainNext)
-        context.parentChainNext.apply({__last:last,__alias:context.alias},[nextFnName]);
+        context.parentChainNext.apply({childChainLast:last,__alias:context.alias},[nextFnName]);
     }
-    else if(context.execution_map)
+    else if(context.execution_map) //check to see if we're following an execution map flow
     {
       for(var key in context.execution_map)
         if(key==lastFnName)
@@ -335,30 +336,30 @@ o_o =  function()
             if (Object.prototype.toString.call(next_fn) == '[object Array]')
               for(i=0; i < next_fn.length; i++)
                 if(!context.current_error)
-                  call_fn(next_fn[i],last);
+                  dispatch(next_fn[i],last);
           }
           else
             if(typeof next_fn == 'string')
-              call_fn(next_fn,last);
+              dispatch(next_fn,last);
         }
       if(!next_fn)
       {
         if(context.parentChainNext)
-          context.parentChainNext.apply({__last:last,__alias:context.alias},[nextFnName]);
+          context.parentChainNext.apply({childChainLast:last,__alias:context.alias},[nextFnName]);
       }
     }
-    else
+    else //we're not skipping, and we're not in an execution map, so just iterate to the next function in the queue
     {
       context.current_index++;
       if(context.current_index >= context.functions.length)
       {
         if(context.parentChainNext)
         {
-          context.parentChainNext.apply({__last:last,__alias:context.alias},[nextFnName]); //if we're a nested chain call next()
+          context.parentChainNext.apply({childChainLast:last,__alias:context.alias},[nextFnName]); //if we're a nested chain call next()
         }
         return;
       }
-      call_fn(context.functions[context.current_index],last);
+      dispatch(context.functions[context.current_index],last);
     }
   } //end iterate()
   
@@ -373,9 +374,7 @@ o_o =  function()
     if(Object.prototype.toString.call(args[0]) == "[object Array]")
     {
       var arr = args[0];
-      var i=0;
-      for(i=0;i<arr.length;i++)
-        context.functions.push(arr[i]);
+      context.functions.push(arr);
     }
     else
     {
@@ -422,7 +421,7 @@ o_o =  function()
           if(handled) break; //the plugin handled this, move on
 
           fn = args[1];
-          if(typeof fn == 'function') //if a function was passed in, queue it. ignore anything else
+          if((typeof fn == 'function') || (Object.prototype.toString.call(fn) == "[object Array]")) //if a function or array was passed in, queue it. ignore anything else
           {
             fn.alias=args[0];
             debug("Registering aliased function: " + fn.alias);
@@ -442,13 +441,13 @@ o_o =  function()
       for(key in context.execution_map)
       {
         //get the first key, then break
-        call_fn(key,context.last||context);
+        dispatch(key,context.last||context);
         break;
       }
     else
     {
       context.current_index=0;
-      call_fn(context.functions[0],context.parentChainLast||context);
+      dispatch(context.functions[0],context.parentChainLast||context);
     }
   }
 
