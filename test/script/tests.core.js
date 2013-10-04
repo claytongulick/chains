@@ -617,6 +617,68 @@ asyncTest("passing array of sync and async functions, no execution map",
 );
 
 /**
+ * Test array of functions and subchains, synchronous and async, no execution map
+ */
+asyncTest("passing array of sync and async functions and subchains, no execution map",
+  function()
+  {
+    expect(16);
+
+
+    function function1() { ok(true, "function1 execute"); this.test1="test1"; this.accumulator.test1="test1"; this.next(); }
+    function function2() { ok(true, "function2 execute"); this.test2="test2"; this.accumulator.test2="test2"; setTimeout(this.next, 1); }
+    function function3() { ok(true, "function3 execute"); this.test3="test3"; this.accumulator.test3="test3"; this.next(); }
+    function function4() { ok(true, "function4 execute"); this.test4="test4"; this.accumulator.test4="test4"; this.next();}
+    var function5 = o_o(
+        function()
+        {
+          this.accumulator.subchain1="subchain1";
+          setTimeout(this.next,1);
+        }
+      )(
+        function()
+        {
+          this.subchain1="subchain1";
+          setTimeout(this.next,1);
+        }
+      );
+    var function6 = o_o(
+        function()
+        {
+          this.accumulator.subchain2="subchain2";
+          this.next();
+        }
+      )(
+        function()
+        {
+          this.subchain2="subchain2";
+          this.next();
+        }
+      );
+
+    o_o([function1,function2,function5,function6,function3,function4])
+    (
+      function()
+      {
+        ok(this.accumulator.test1=="test1", "correct value 1"); 
+        ok(this.accumulator.test2=="test2", "correct value 2");
+        ok(this.accumulator.test3=="test3", "correct value 3");
+        ok(this.accumulator.test4=="test4", "correct value 4");
+        ok(this.accumulator.subchain1=="subchain1", "correct accumulator subchain1");
+        ok(this.accumulator.subchain2=="subchain2", "correct accumulator subchain2");
+        ok(this.last.test1=="test1","correct last 1");
+        ok(this.last.test2=="test2","correct last 2");
+        ok(this.last.test3=="test3","correct last 3");
+        ok(this.last.test4=="test4","correct last 4");
+        ok(this.last.subchain1=="subchain1","correct last subchain1");
+        ok(this.last.subchain2=="subchain2","correct last subchain2");
+        start();
+      }
+    )();
+  }
+);
+
+/**
  * This tests execution of asynchronous anonymous functions
  */
 asyncTest("aliased functions, asynchronous, no execution map",

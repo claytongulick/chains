@@ -213,9 +213,22 @@ o_o =  function()
     var pseudoLast = {};
     var accumulator = last.accumulator || {};
     var contexts = [];
-    function paralellFunctionComplete()
+    function paralellFunctionComplete(childChainLast)
     {
       functionsLeft--;
+
+      //copy the values from the child chain, if it exists. 
+      //we can't just use the normal contexts array for subchains since their
+      //context is heavily modified as the chain executes, and is not the same object as is
+      //passed in (like with normal functions)
+      if(childChainLast)
+      {
+          for(key in childChainLast)
+            pseudoLast[key] = childChainLast[key];
+
+          for(key in childChainLast.accumulator)
+            accumulator[key] = childChainLast.accumulator[key];
+      }
 
       //when all functions have executed, continue on
       if(!functionsLeft)
@@ -265,7 +278,12 @@ o_o =  function()
 
         next: function()
         {
-          paralellFunctionComplete();
+          if(this.childChainLast) //check to see if 'last' is being passed up from a nested chain
+          {
+            this.childChainLast.end_execute = new Date().getTime();
+            debug("Function chain: " + this.__alias + " complete. End execution time: " + this.childChainLast.end_execute + " total time: " + (this.childChainLast.end_execute - this.childChainLast.start_execute));
+          }
+          paralellFunctionComplete(this.childChainLast || null);
         },
         last: last,
         //create a forward accumulating object for carrying values forward into each call. This can be used to always keep certain values
