@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html>
-
   <head>
     <meta charset='utf-8' />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
@@ -12,6 +11,19 @@
   </head>
 
   <body>
+    <nav>
+        <ul>
+            <li><a href="#Overview">Overview</a></li>
+            <li><a href="#Installation">Installation</a></li>
+            <li><a href="#Basic Usage">Basic Usage</a></li>
+            <li><a href="#Parallel Execution">Parallel Execution</a></li>
+            <li><a href="#Control of Flow">Control of Flow</a></li>
+            <li><a href="#Subchains, Parent Chains, and Nesting">Subchains, Parent Chains, and Nesting</a></li>
+            <li><a href="#Error Handling">Error Handling</a></li>
+            <li><a href="#Tracing and Profilng">Tracing and Profilng</a></li>
+            <li><a href="#Plugins">Plugins</a></li>
+        </ul>
+    </nav>
 
     <!-- HEADER -->
     <div id="header_wrap" class="outer">
@@ -37,7 +49,7 @@
 
       <p>chains.js is a utility for managing the structure and execution of javascript.</p>
 
-      <h3>Overview</h3>
+      <a name="Overview"><h3>Overview</h3></a>
       <p>Chains allows for the managing of complex asychronous or sychronous application execution flow. Chains is a purely functional approach to 
       managing application execution. Chains.js is not a framework, it is a simple utility that allows developers to structure their code in a straight-forward manner,
       though as mentioned below, sophisticated application orchestration is possible by compositing chains together. </p>
@@ -53,7 +65,7 @@
       and the facebook_chain subchains. This chain can then be combined with other chains, perhaps an "authenticate_chain" and a "get_app_data" chain into one large
       "main_chain", which when executed orchestrates all of the complex async loads for the entire app.</p>
 
-      <h3>Installation</h3>
+      <a name="Installation"><h3>Installation</h3></a>
       <p>For browsers, just include a reference to chains.js, i.e. </p>
       <pre>&lt;script src='script/lib/chains.js'&gt;&lt;script&gt;</pre>
       <p>For node <pre>npm install chainsjs</pre> or add a dependency to your package.json file - then require it in your module like:</p>
@@ -63,8 +75,18 @@
         </code>
       </pre>
 
-      <h3>Basic Usage</h3>
+      <a name="Basic Usage"><h3>Basic Usage</h3></a>
       <p>In it's most simple form, a chain is nothing more than a serial, in-order execution of a list of funcitons, either sychronous or asychronous.</p>
+      <p>A very simple chain might look like:</p>
+      <pre>
+        <code>
+            o_o(someFunction)(anotherFunction)(yetAnotherFunction)();
+        </code>
+      </pre>
+      <p>In the above example, each function will execute in order, one after another. Functions that are "chains enabled" are referred to as "links". 
+      There is only one requirement for a function to be a link: at some point, it must call next() on the "this" context. </p>
+      <p>Links can be inline, or external. For example, in NodeJS it is common to have links defined in an external file, but this is by no means a requirement. Here's a simple example of a 
+      basic chain using in-line anonymous functions:</p>
       <pre>
         <code>
           o_o
@@ -101,15 +123,52 @@
           )();
         </code>
       </pre>
-      <p>In the above code, each inline function executes in order. There are some interesting parts that we'll examine here.</p>
+      <p>Just like the first example, in the above code each inline function executes in order. There are some interesting parts that we'll examine here.</p>
 
       <code>this.result = "some value"</code>
 
-      <p>Chains embraces "functional programming" techniques. In chains, there's no separation between functions,
-      models, and controllers. There's no need to tie everything together with complex event pathways. Functions <i>are</i> models, and all functions are 
-      chained together using the 'this' context. Each function 
-      can access the values from the previous function by calling 'this.last'. This is chainable all the way back to the original function that
-      was executed, via this.last.last.last... in the above line of code, a string ("some value") is assigned to the "result" property of the this context.</p>
+      <p>Using this.last.last can quickly become cumbersome when you want to retrieve values from previous links. Additionally, it ties your code to a specific
+      execution order, which can make refactoring error prone. To overcome this, chains introduces a concept called the "accumulator".</p>
+      <p>The accumulator object is a chain-local object that carries a context between links. Using the accumulator object allows you to store values or objects that will
+      be easily accessible from any other link in the chain, subchains or parent chains (more on this later).</p>
+      <p>The above example rewritten to use the accumulator object:</p>
+
+      <pre>
+        <code>
+          o_o
+          (
+            function()
+            {
+              //...do something
+              this.accumulator.result = "some value";
+              this.next();
+            }
+          )(
+            function()
+            {
+              //...this will get executed next
+              var ctx = this; //store the this context in the ctx variable so it can be access within the async function
+              setTimeout(
+                function()
+                {
+                  //do someting with the last result, and store it in the accumulator
+                  this.accumulator.result = this.accumulator.result + ", more text";
+                  this.accumulator.someObject = {we:"can",also:"store",objects:"here"};
+                  ctx.next();
+                }
+              ,100);
+            }
+          )(
+            function()
+            {
+              //...this will be executed after the timeout has expired
+              console.log(this.accumulator.result); // "some value, more text"
+              console.log(this.accumulator.someObject.also); //"store"
+              this.next();
+            }
+          )();
+        </code>
+      </pre>
 
       <code>this.next()</code>
 
@@ -130,96 +189,140 @@
               ,100);
       </code>
       </pre>
-      <p>In this example, a reference to the 'next' function is stored in a local variable, and called from an anonymous inline asycnronously</p>
 
-      <h3>Execution Maps</h3>
-      <p>chains.js has many advanced execution pattern capabilties, most of which are driven by 'execution maps', objects that define
-      the mapping between functions and how a chain of execution flows. Execution maps are simple objects that link together functions:
+      <p>In this function we cache the "this" value in a variable so we can refer to it later asynchronously. This is a common technique when using chains with other async
+      API's, like jquery or node. Chains is easy to use with other libraries, and doesn't restrict you to a single "right way" of doing things.</p>
+
+      <a name="Parallel Execution"><h3>Parallel Execution</h3></a>
+      <p>Chains' ability to execute simple functions one after another is a powerful technique that simplifies asynchronous development quite a bit. Sometimes though, you don't want to wait
+      for a function to complete before you run the next one, sometimes you want to run several functions in parallel and then take some action. Chains makes this simple too:
       <pre>
         <code>
-          {
-            "function1":"function2",
-            "function2":"function3",
-            "function3":"function4"
-          }
+            o_o([function1,function2,function3])(doThisAtTheEnd)();
         </code>
       </pre>
-      <p>Each key/value pair specifies the order of execution for functions. After function1 executes, function2 will be called. After function2,
-      function3, and so on.</p>
-      <p>More than one function can be triggered for execution by specifying an array for the value:</p>
+      <p>Chains will execute an array of functions in parallel, then contiue on as if all of the parallel functions we a single function call. This powerful technique can be extended
+      to support very advanced execution orchestrations. Here's a conceptual example:</p>
       <pre>
         <code>
-          {
-            "function1":[
-                          "parallel_function1",
-                          "parallel_function2",
-                          "parallel_function3"
-                        ],
-            "parallel_function1": "accumulator",
-            "parallel_function2": "accumulator",
-            "parallel_function3": "accumulator",
-            "accumulator":"finish"
-          }
-        </code>
-      </pre>
-      <p>The "parallel" functions in the array above are executed in a simple loop, one after the other. If these functions are asyc, the 
-      calls are executed in parallel. In the above example, after each parallel function an "accumulator" function is called. This execution 
-      pattern allows for parallel synchronous and asychronous values to be accumulated in the 'this' context of the accumulator function,
-      then passed as 'last' to the 'finish' function.</p>
-      <p>Of course, in order for an execution map to work, each function must have a name to be mapped. In chains, functions can be passed by
-      name, or aliased. If the first parameter to a chains call is a string, it will be used as the alias for the function. Consider the following example:
-      <pre>
-        <code>
-          function someNamedFunction()
-          {
-            //...do something
-            this.next();
-          }
-
-          function anotherNamedFunction()
-          {
-            //...do more
-            this.next();
-          }
-
-          o_o
-          (
-            "someAliasedFunction",
-            function()
-            {
-              //this is the last function that will be executed
-            }
-          )(
-            someNamedFunction
-          )(
-            anotherNamedFunction
-          )(
-            {
-              "someNamedFunction":"anotherNamedFunction",
-              "anotherNamedFunction":"someAliasedFunction"
-            }
-          )();
-        </code>
-      </pre>
-      <p>In the above code, each function in the chain is either a regular, named function or an aliased function ("someAliasedFunction").
-      Passing a string as the first parameter creates an alias for the anonymous function and allows it to be mapped in the execution map.</p>
-
-      <h4>Nesting</h4>
-      <p>Chains can be nested, and are able to execute the 'this' context of the previously executed chain through the 'last' property.</p>
-      <pre>
-        <code>
-          o_o
-          (
             o_o
             (
-              function1
-            )(
-              function() {this.result="some value"; this.next();}
+                authenticateUser
             )
+            (
+                getUserContextFromDatabase
+            )
+            (
+                [
+                    getUserPosts,
+                    getUserMessages,
+                    getUserNotifications
+                ]
+            )
+            (
+                renderWebPage
+            )();
+        </code>
+      </pre>
+
+      <a name="Control of Flow"><h3>Control of Flow</h3></a>
+      <p>One of the most interesting capabilities of chains is the ability to perform asynchronous flow control and looping. This can be difficult to achieve in other libraries, however chains makes this very simple
+      by allowing you to give links names, and execute them explicitly from within a different link or subchain.</p>
+      <p>If a funtion is declared using the javascript "function" keyword, there is no need to give the link a name, the function name will be used. If the function is declared anonymously, then giving it a name will
+      let you refer to it later</p>
+
+      <pre>
+        <code>
+            function authenticateUser() { ... //verify credentials }
+            function getFacebookPosts() { ... //do stuff }
+
+            o_o(
+                authenticateUser
+            )(
+                function()
+                {
+                    if(!this.accumulator.user)
+                        return this.next("loginError");
+
+                    next("getFacebookPosts");
+                }
+            )(
+                getFacebookPosts
+            )(
+                "loginError",
+                function()
+                {
+                    ... //notify the user of the problem
+                }
+            )();
+
+        </code>
+      </pre>
+
+      <p>Chains even allows asynchronous looping!</p>
+
+      <pre>
+        <code>
+            o_o(
+                "start",
+                function()
+                {
+                    this.accumulator.counter = 10;
+                    this.next();
+                }
+            )(
+                "looper",
+                function()
+                {
+                    var thys = this;
+                    if(this.accumulator.counter &lt; 0)
+                        return this.next("finished");
+
+                    this.accumulator.counter--;
+                    
+                    $.ajax(
+                        {
+                            ... //settings
+                            complete: function()
+                            {
+                                thys.next("looper");
+                            }
+                        });
+
+                }
+            )(
+                "finished",
+                function()
+                {
+                    //all done!
+                }
+            )();
+        </code>
+      </pre>
+      <p>The above example demonstrated a very simple pattern to execute an asyncronous function 10 times, then execute a final function when complete. Of course, we could have modified the accumulator.counter property
+      inside of the looper to control the number of loops, perhaps based on the result of our async call to the server. One great use for a technique like this is implementing a long poll with throttling and dynamic timing
+      based on the response from the server. </p>
+
+      <a name="Subchains, Parent Chains, and Nesting"><h3>Subchains, Parent Chains, and Nesting</h3></a>
+      <p>Chains can be nested n-levels deep, and will maintain context and connection between all of the links and levels, both with the "this.last.last" method, and via the accumulator object.</p>
+      <pre>
+        <code>
+          var authChain = o_o( 
+            function(
+            {
+                this.accumulator.user = {userName: "zaphod", password: "supersecret123"};
+            }
+          )(
+                require("security").authenticateUser
+          );
+
+          o_o
+          (
+            authChain
           )(
             function()
             {
-              console.log(this.last.result); //"some value"
+              console.log(this.accumulator.user.userName); //"zaphod"
             }
           )();
         </code>
@@ -264,6 +367,40 @@
       </pre>
       <p>The above are just a few basic examples of what is possible with chains.js. Many more advanced execution patterns are possible.
       For more information, review the wiki pages and the advanced usage examples, as well as the plugins.</p>
+
+
+      <a name="Error Handling"><h3>Error Handling</h3></a>
+      <p>Dealing with errors in asyncronous programming models can be complex. For example, exceptions in NodeJS can be hard to track down and sometimes even ignored completely. To help with this, chains has an error handler
+      that will be called any time an exeption occurs in your code. This will happen automatically, or can be invoked explicitly inside of any link. The error handler "bubbles", meaning an error handler in a parent chain
+      will be invoked if there is an error in a subchain, or a sub-sub-chain, etc.</p>
+      <p>To implement an error handler, just alias a function with the name "error"</p>
+
+      <pre>
+        <code>
+            o_o(
+                subChain1
+            )(
+                someFunction
+            )(
+                "error",
+                function()
+                {
+                    //handle any errors in the subchains or links
+                }
+            )();
+        </code>
+      </pre>
+
+      <a name="Tracing and Profiling"><h3>Tracing and Profilng</h3></a>
+      <p>Tracing the flow of asynchronous stacks can be difficult, and it can be even more difficult to identify performance problems with async calls. Chains makes this easy by providing a full debug async stack trace
+      with every function call, as well as total time spent in the function.</p>
+      <p>To enable this, all you need to do is set debug to true: </p>
+      <code> o_o.debug=true;</code>
+      <p>Doing this will cause a console log to be output, containing the full flow of your chains and subchains along with the total time spent in each function. In the future, we will implement a full profiling interface
+      that will provide standard profiling information, i.e. call count, time in function, total time, etc...</p>
+
+      <a name="Plugins"><h3>Plugins</h3></a>
+      <p>Chains has a simple plugin model that allows any developer to extend the functionality of chains and expand the api. Several plugins are in the planning phases, so check back here for more information.</p>
 
       </section>
     </div>
