@@ -263,10 +263,8 @@ img {
 }
 
 nav {
-    position: fixed;
-    top: 25%;
-    left: 10%;
-    border: 1px solid black;
+    display: none;
+    padding: 10px;
 }
 
 /*******************************************************************************
@@ -382,6 +380,25 @@ Full-Width Styles
 }
 
 
+@media screen and (min-width: 1400px) {
+    nav {
+        display: block;
+        position: fixed;
+        top: 230px;
+        left: 5%;
+        border: 1px solid black;
+    }
+}
+
+@media screen and (min-width: 1600px) {
+    nav {
+        display: block;
+        position: fixed;
+        top: 230px;
+        left: 10%;
+        border: 1px solid black;
+    }
+}
 
 /*******************************************************************************
 Small Device Styles
@@ -391,6 +408,8 @@ Small Device Styles
   body {
     font-size:14px;
   }
+
+  nav { display: none; }
 
   #downloads {
     display: none;
