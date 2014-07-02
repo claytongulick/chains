@@ -2,7 +2,7 @@
 
    chains.js
 
-   version 0.1
+   version 0.2
 
    Javascript execution and management utility
 
@@ -505,6 +505,9 @@ function debug(message)
 
 o_o.plugins=[]; //init plugins array
 
-if(module && module.exports)
+if(
+    (typeof module != "undefined") && 
+    (typeof module.exports != "undefined")
+  )
   module.exports = o_o;
 
